@@ -1,0 +1,3 @@
+*.pyc
+REDDIT_CLIENT.txt
+*.pkl.gz

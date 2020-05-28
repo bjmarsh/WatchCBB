@@ -1,9 +1,7 @@
-import sys
-sys.path.append("../scrape")
-from RedditCBBScrape import RedditCBBScrape
-
 import numpy as np
 import pandas as pd
+
+from watchcbb.scrape.RedditCBBScrape import RedditCBBScrape
 
 
 lines = open('../scrape/REDDIT_CLIENT.txt').readlines()

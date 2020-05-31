@@ -14,7 +14,7 @@ class RedditCBBScrape:
     def __init__(self, client_id, client_secret, user_agent):
 
         self.reddit = praw.Reddit(client_id=client_id, client_secret=client_secret,
-                             user_agent=user_agent)
+                                  user_agent=user_agent)
         self.api = PushshiftAPI(self.reddit)
 
     def get_gamethreads_from_date(self, date):
@@ -22,6 +22,9 @@ class RedditCBBScrape:
             date = dt.datetime.combine(date, dt.time())
         if type(date) != dt.datetime:
             raise TypeError('Expecting datetime.datetime, got {0}'.format(type(date)))
+
+        start_epoch = int((date + dt.timedelta(hours=5)).timestamp())
+        end_epoch = int((date + dt.timedelta(1) + dt.timedelta(hours=5)).timestamp())
 
         gen = self.api.search_submissions(title='"game thread"', subreddit='collegebasketball', 
                                           after=start_epoch, before=end_epoch, limit=500)

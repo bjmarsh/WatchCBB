@@ -7,7 +7,7 @@ import pandas as pd
 
 from watchcbb.scrape.RedditCBBScrape import RedditCBBScrape
 
-YEAR = 2020
+YEAR = 2019
 
 lines = open('../watchcbb/scrape/REDDIT_CLIENT.txt').readlines()
 client_id = lines[0].strip()

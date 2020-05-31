@@ -47,10 +47,11 @@ def compute_season_stats(df):
                 stats[year][tid]["wins"] = 0
                 stats[year][tid]["losses"] = 0
                 stats[year][tid]["totOT"] = 0
-                stats[year][tid]["opps"] = []        
-                stats[year][tid]["scores"] = []                
-                stats[year][tid]["poss"] = []                
-                stats[year][tid]["nOT"] = []                
+                stats[year][tid]["opps"] = []
+                stats[year][tid]["scores"] = []
+                stats[year][tid]["HA"] = []
+                stats[year][tid]["poss"] = []
+                stats[year][tid]["nOT"] = []
                 for sn in STATNAMES:
                     stats[year][tid]["T"+sn] = 0
                     stats[year][tid]["O"+sn] = 0
@@ -67,11 +68,12 @@ def compute_season_stats(df):
         stats[year][wid]["opps"].append(lid)
         stats[year][lid]["opps"].append(wid)
         stats[year][wid]["scores"].append((row.WScore,row.LScore))
-        stats[year][lid]["scores"].append((row.LScore,row.WScore))
+        stats[year][lid]["scores"].append((row.LScore,row.WSCore))
+        stats[year][wid]["HA"].append(row.WLoc)
+        stats[year][lid]["HA"].append('HNA'['ANH'.find(row.WLoc)])
+        stats[year][lid]["poss"].append(row.poss)
         stats[year][wid]["poss"].append(row.poss)
         stats[year][lid]["poss"].append(row.poss)
-        stats[year][wid]["nOT"].append(row.NumOT)
-        stats[year][lid]["nOT"].append(row.NumOT)
 
     return stats
 
@@ -100,7 +102,7 @@ def stats_df_to_dict(df):
     for irow, row in df.iterrows():
         if row.year not in stats:
             stats[row.year] = {}
-        if row.team_id not in stats[row.year]:
+        if row.team_id not in stats[year]:
             stats[row.year][row.team_id] = {}
         for col in df.columns[2:]:
             stats[row.year][row.team_id][col] = row[col]
@@ -118,4 +120,4 @@ def add_advanced_stats(df):
         df[c+'orbp'] = df[c+'OR'] / (df[c+'OR'] + df[c+'DR'])
         df[c+'ftr'] = df[c+"FTA"] / df[c+"FGA"]
     df['rawpace'] = 0.5*(df["Tposs"]+df["Oposs"]) / (df["wins"] + df["losses"] + 0.125*df["totOT"])
-
+    return stats

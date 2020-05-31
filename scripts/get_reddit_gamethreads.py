@@ -4,7 +4,7 @@ import pandas as pd
 from watchcbb.scrape.RedditCBBScrape import RedditCBBScrape
 
 
-lines = open('../scrape/REDDIT_CLIENT.txt').readlines()
+lines = open('../watchcbb/scrape/REDDIT_CLIENT.txt').readlines()`
 client_id = lines[0].strip()
 client_secret = lines[1].strip()
 user_agent = 'testscript by /u/bboiler'

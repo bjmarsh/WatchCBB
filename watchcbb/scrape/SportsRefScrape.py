@@ -21,7 +21,7 @@ class SportsRefScrape:
     def __init__(self):
         pass
 
-    def get_gid(self,date,t1,t2):
+    def get_gid(self,date, t1, t2):
         """ Return unique game id, with date and alphabetized teams, like 2020-02-15_indiana_purdue" """
         tnames = sorted([t1, t2])
         return "{0}_{1}_{2}".format(date,tnames[0],tnames[1])
@@ -181,7 +181,52 @@ WAst,WTO,WStl,WBlk,WPF,LFGM,LFGA,LFGM3,LFGA3,LFTM,LFTA,LOR,LDR,LAst,LTO,LStl,LBl
         return rows
 
 
+    def get_ap_rankings(self, season):
+        """Given the season, return a dictionary where the keys are dates 
+           and values are length-25 lists giving the rankings 1-25 on that date.
+        """
 
+        url = f'https://www.sports-reference.com/cbb/seasons/{season}-polls.html'
+        html = get_html(url)
+        soup = BeautifulSoup(html, 'html.parser')
+
+        table = soup.find('table', {'id':'ap-polls'})
+
+        # get the poll dates
+        polls = {}
+        date_row = table.find('thead').find_all('tr')[2]
+        for th in date_row.find_all('th')[2:]:
+            s = th.string
+            if s=="Pre":
+                date = dt.date(season-1,10,1)
+            elif s=="Final":
+                date = dt.date(season,5,1)
+            else:
+                month = int(s.split('/')[0])
+                day = int(s.split('/')[1])
+                year = season
+                if month > 7:
+                    year -= 1
+                date = dt.date(year,month,day)
+            polls[date] = [[] for i in range(25)]
+
+        sorted_dates = sorted(polls.keys())
+
+        for tr in table.find('tbody').find_all('tr'):
+            tds = tr.find_all('td')
+            if len(tds)==0:
+                continue
+            tid = tr.find('th').find('a').get('href').split('/')[3]
+            for date, td in zip(sorted_dates,tds[1:]):
+                if td.string is not None and td.string != "":
+                    idx = int(td.string)-1
+                    polls[date][idx].append(tid)
+                    
+        for date in polls:
+            if sum(len(teams) for teams in polls[date]) < 25:
+                raise Exception(f'Less than 25 teams for date {date}')
+
+        return polls
 
 if __name__=="__main__":
     

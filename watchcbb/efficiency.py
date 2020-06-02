@@ -10,8 +10,8 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0):
     stats = ["eff","astr","tovr","efgp","orbp","ftr"]
 
     ## check that we've computed advanced stats. Otherwise throw error
-    year = statdict.keys()[0]
-    tid = statdict[year].keys()[0]
+    year = list(statdict.keys())[0]
+    tid = list(statdict[year].keys())[0]
     if "Teff" not in statdict[year][tid]:
         raise Exception("Must first compute advanced stats with utils.add_advanced_stats")
 
@@ -39,10 +39,12 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0):
                     d["Tcorrd"+stat] = 999.0
 
             d["pacetemp"] = d["rawpace"]
-            d["pace"] = d["pacet"]
+            d["pace"] = d["pacetemp"]
 
-    # iterate 50 times. Should converge well before this
-    for i in range(50):
+    # iterate until corrected efficiencies aren't changing any more
+    maxchange = 100
+    while maxchange > 0.001:
+        maxchange = 0.0
         # compute opponents' average efficiencies
         for year in statdict:
             for tid in statdict[year]:
@@ -62,15 +64,15 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0):
                     for stat in stats:
                         sumoff[stat] /= norm
                         sumdef[stat] /= norm
-                        statdict[year][id]["Ocorro"+stat] = sumoff[stat]
-                        statdict[year][id]["Ocorrd"+stat] = sumdef[stat]
+                        statdict[year][tid]["Ocorro"+stat] = sumoff[stat]
+                        statdict[year][tid]["Ocorrd"+stat] = sumdef[stat]
                 else:
                     for stat in stats:
-                        statdict[year][id]["Ocorro"+stat] = 0.0
-                        statdict[year][id]["Ocorrd"+stat] = 999.0
+                        statdict[year][tid]["Ocorro"+stat] = 0.0
+                        statdict[year][tid]["Ocorrd"+stat] = 999.0
 
-            # correct team efficiencies
-        for year in years:
+        # correct team efficiencies
+        for year in statdict:
             avg_stat = {}
             for stat in stats:
                 avg_stat["o"+stat] = GetAvg(year, "o"+stat)
@@ -84,22 +86,31 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0):
                     continue
                 # correct offensive efficiency for avg. opponent defensive efficiency
                 # (percent correction based on percent avg. opponent is better/worse than average)
+                oldoeff = d[tid]["Tcorroeff"]
+                olddeff = d[tid]["Tcorrdeff"]
                 for stat in stats:
-                    ocorr = d[tid]["Ocorrd"+stat]/Teams.avg_stat["d"+stat]
+                    ocorr = d[tid]["Ocorrd"+stat]/avg_stat["d"+stat]
                     d[tid]["Tcorro"+stat] = d[tid]["T"+stat] / ocorr**conv_param
-                    dcorr = d[tid]["Ocorro"+stat]/Teams.avg_stat["o"+stat]
+                    dcorr = d[tid]["Ocorro"+stat]/avg_stat["o"+stat]
                     d[tid]["Tcorrd"+stat] = d[tid]["O"+stat] / dcorr**conv_param
-
+                maxchange = max(maxchange, 
+                                max(abs(oldoeff-d[tid]["Tcorroeff"]), abs(olddeff-d[tid]["Tcorrdeff"])))
                 d[tid]["pace"] = 0
-                ngames = len(d[tid]["schedule"])
+                ngames = len(d[tid]["opps"])
                 for i in range(ngames):
-                    opp = d[tid]["schedule"][i]
-                    gamepace = d[tid]["poss"][i] / (1.0 + 0.125*d[tid]["nOT"])
+                    opp = d[tid]["opps"][i]
+                    gamepace = d[tid]["poss"][i] / (1.0 + 0.125*d[tid]["nOT"][i])
                     ## comes from formula  game_pace = t1_pace * t2_pace/avg_pace
-                    d[tid]["pace"] += (gamepace*Teams.avg_pace / d[opp]["pacetemp"]) / ngames  
+                    d[tid]["pace"] += (gamepace*avg_pace / d[opp]["pacetemp"]) / ngames  
+                    # d[tid]["pace"] += (gamepace + avg_pace - d[opp]["pacetemp"]) / ngames  
+                    # d[tid]["pace"] += (2*gamepace - d[opp]["pacetemp"]) / ngames  
+
+        for year in statdict:
+            for tid in statdict[year]:
+                statdict[year][tid]["pacetemp"] = statdict[year][tid]["pace"]
             
-    for year in years:
-        for txsid in statdict[year]:
-            statdict[year][id].pop("pacet")
-            statdict[year][id]["Tneteff"] = statdict[year][id]["Tcorroeff"] - statdict[year][id]["Tcorrdeff"]
-            statdict[year][id]["Oneteff"] = statdict[year][id]["Ocorroeff"] - statdict[year][id]["Ocorrdeff"]
+    for year in statdict:
+        for tid in statdict[year]:
+            statdict[year][tid].pop("pacetemp")
+            statdict[year][tid]["Tneteff"] = statdict[year][tid]["Tcorroeff"] - statdict[year][tid]["Tcorrdeff"]
+            statdict[year][tid]["Oneteff"] = statdict[year][tid]["Ocorroeff"] - statdict[year][tid]["Ocorrdeff"]

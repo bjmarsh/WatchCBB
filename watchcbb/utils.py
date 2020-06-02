@@ -47,6 +47,7 @@ def compute_season_stats(df):
                 stats[year][tid]["wins"] = 0
                 stats[year][tid]["losses"] = 0
                 stats[year][tid]["totOT"] = 0
+                stats[year][tid]["totPoss"] = 0
                 stats[year][tid]["opps"] = []
                 stats[year][tid]["scores"] = []
                 stats[year][tid]["HA"] = []
@@ -65,15 +66,18 @@ def compute_season_stats(df):
         stats[year][lid]["losses"] += 1
         stats[year][wid]["totOT"] += row.NumOT
         stats[year][lid]["totOT"] += row.NumOT
+        stats[year][wid]["totPoss"] += row.poss
+        stats[year][lid]["totPoss"] += row.poss
         stats[year][wid]["opps"].append(lid)
         stats[year][lid]["opps"].append(wid)
         stats[year][wid]["scores"].append((row.WScore,row.LScore))
-        stats[year][lid]["scores"].append((row.LScore,row.WSCore))
+        stats[year][lid]["scores"].append((row.LScore,row.WScore))
         stats[year][wid]["HA"].append(row.WLoc)
         stats[year][lid]["HA"].append('HNA'['ANH'.find(row.WLoc)])
-        stats[year][lid]["poss"].append(row.poss)
         stats[year][wid]["poss"].append(row.poss)
         stats[year][lid]["poss"].append(row.poss)
+        stats[year][wid]["nOT"].append(row.NumOT)
+        stats[year][lid]["nOT"].append(row.NumOT)
 
     return stats
 
@@ -89,10 +93,12 @@ def stats_dict_to_df(stats):
             for s in stats[year][tid].keys():
                 ascols[s].append(stats[year][tid][s])
 
-    return pd.DataFrame(ascols, 
-                        columns=["year","team_id","wins","losses","totOT"] + \
-                        ["T"+sn for sn in STATNAMES] + \
-                        ["O"+sn for sn in STATNAMES])
+    columns = ["year","team_id","wins","losses","totOT"] + \
+              ["T"+sn for sn in STATNAMES] + ["O"+sn for sn in STATNAMES]
+    columns += list(set(stats[year][tid].keys())-set(columns))
+
+    return pd.DataFrame(ascols, columns=columns)
+
 
 def stats_df_to_dict(df):
     """Convert a DataFrame of aggregated season stats
@@ -102,7 +108,7 @@ def stats_df_to_dict(df):
     for irow, row in df.iterrows():
         if row.year not in stats:
             stats[row.year] = {}
-        if row.team_id not in stats[year]:
+        if row.team_id not in stats[row.year]:
             stats[row.year][row.team_id] = {}
         for col in df.columns[2:]:
             stats[row.year][row.team_id][col] = row[col]
@@ -112,12 +118,13 @@ def add_advanced_stats(df):
     """ Add some advanced stats to a season stats dataframe """
     # compute advanced stats
     for c in ('T','O'):
+        opp = 'T' if c=='O' else 'O'
         df[c+'poss'] = df[c+"FGA"] + 0.44*df[c+"FTA"] - df[c+"OR"] + df[c+"TO"]
         df[c+'eff'] = 100. * df[c+"Score"] / df[c+"poss"]
         df[c+'astr'] = df[c+"Ast"] / (df[c+"FGA"] + 0.44*df[c+"FTA"] + df[c+"Ast"] + df[c+"TO"])
         df[c+'tovr'] = df[c+"TO"] / (df[c+"FGA"] + 0.44*df[c+"FTA"] + df[c+"TO"])
         df[c+'efgp'] = (df[c+"FGM"] + 0.5*df[c+"FGM3"]) / df[c+"FGA"]
-        df[c+'orbp'] = df[c+'OR'] / (df[c+'OR'] + df[c+'DR'])
+        df[c+'orbp'] = df[c+'OR'] / (df[c+'OR'] + df[opp+'DR'])
         df[c+'ftr'] = df[c+"FTA"] / df[c+"FGA"]
     df['rawpace'] = 0.5*(df["Tposs"]+df["Oposs"]) / (df["wins"] + df["losses"] + 0.125*df["totOT"])
-    return stats
+

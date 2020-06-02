@@ -6,10 +6,10 @@ import pandas as pd
 
 from watchcbb.scrape.RedditCBBScrape import RedditCBBScrape
 
-YEAR = 2020
+YEAR = 2018
 
-startdate = dt.datetime(2019,11,5)
-enddate = dt.datetime(2020,3,11)
+startdate = dt.datetime(2017,11,10)
+enddate = dt.datetime(2018,3,11)
 
 lines = open('../watchcbb/scrape/REDDIT_CLIENT.txt').readlines()
 client_id = lines[0].strip()

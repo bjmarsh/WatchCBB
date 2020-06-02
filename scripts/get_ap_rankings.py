@@ -17,7 +17,7 @@ for season in range(2011,2021):
 dates = sorted(all_polls.keys())
 ranks = [all_polls[d] for d in dates]
 
-df = pd.DataFrame(ranks, index=dates, columns=[str(i) for i in range(1,26)])
+df = pd.DataFrame(ranks, index=dates, columns=['r'+str(i) for i in range(1,26)])
 df.index.name = "date"
 
 print(df.head())

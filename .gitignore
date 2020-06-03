@@ -1,3 +1,4 @@
 *.pyc
 REDDIT_CLIENT.txt
+PSQL_CREDENTIALS.txt
 *.pkl.gz

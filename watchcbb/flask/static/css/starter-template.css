@@ -32,3 +32,9 @@ body {
   float: left;
   display: inline;
 }
+
+.results-table {
+    font-size: 20px;
+    width: 80%;
+    margin: auto;
+}

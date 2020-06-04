@@ -1,3 +1,5 @@
+import os
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
@@ -11,6 +13,9 @@ import pandas as pd
 STATNAMES = ["Score","FGM","FGA","FGM3","FGA3","FTM","FTA","OR","DR","Ast","TO","Stl","Blk","PF"]
 ADVSTATNAMES = ['eff','astr','orbp','tovr','efgp','ftr']
 ADVSTATFEATURES = ["T"+stat for stat in ADVSTATNAMES] + ["O"+stat for stat in ADVSTATNAMES]
+PCAFEATURES = [f"PCA{i}" for i in range(len(ADVSTATFEATURES))]
+RIVALRIES = [tuple(sorted([x.strip() for x in line.split(',')])) \
+             for line in open(os.path.join(os.path.dirname(__file__),'../data/rivalries.txt'))]
 
 def partition_games(df, frac=0.7):
     """Returns a 2-tuple of arrays containing the indices.
@@ -133,7 +138,7 @@ def add_advanced_stats(df):
 
 
 
-def compile_training_data(df, season_stats_dict, random_seed=0):
+def compile_training_data(df, season_stats_dict, random_seed=0, sort='random'):
     """Take in a raw game-level dataframe as well as a dictionary of season stats,
        and generate a tidy dataframe amenable to feeding into ML models.
        Randomly choose a team to be the "reference" for relative features,
@@ -143,9 +148,14 @@ def compile_training_data(df, season_stats_dict, random_seed=0):
     data = defaultdict(list)
     for irow, row in df.iterrows():
         d = season_stats_dict[row.Season]
-        dowin = np.random.randint(2)
-        mult = (1 if dowin else -1)
+        if sort=='random':
+            dowin = np.random.randint(2)
+        elif sort=='alphabetical':
+            dowin = (row.WTeamID < row.LTeamID)
+        else:
+            raise Exception("Illegal sort parameter "+sort)
         id1, id2 = row.WTeamID, row.LTeamID
+        mult = (1 if dowin else -1)
         if not dowin:
             id1, id2 = id2, id1
         data['result'].append(dowin)
@@ -202,3 +212,22 @@ def get_pca_model():
         ('scaler', StandardScaler()),
         ('pca', PCA())
     ])
+
+def is_upset(r1, r2):
+    """Return true if r1 beating r2 is classified as an upset"""
+
+    return (r1 < 0 and 0 < r2 <= 20) or (r1 > 0 and r2 > 0 and r1-r2 > 10)
+
+def get_df_upset_prob(row):
+    """ Call df.apply on this to get upset probability per row. 0 if no potential upset."""
+    
+    if is_upset(row.rank1, row.rank2):
+        return row.prob
+    if is_upset(row.rank2, row.rank1):
+        return 1-row.prob
+    return 0.0
+
+def is_rivalry(row):
+    """True if this row contains a rivalry game as defined in data/rivalries.txt"""
+    tid1, tid2 = row.gid.split('_')[1:]
+    return (tid1,tid2) in RIVALRIES

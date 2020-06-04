@@ -133,7 +133,7 @@ def add_advanced_stats(df):
 
 
 
-def compile_training_data(df_remain, season_stats_dict, random_seed=0):
+def compile_training_data(df, season_stats_dict, random_seed=0):
     """Take in a raw game-level dataframe as well as a dictionary of season stats,
        and generate a tidy dataframe amenable to feeding into ML models.
        Randomly choose a team to be the "reference" for relative features,
@@ -141,7 +141,7 @@ def compile_training_data(df_remain, season_stats_dict, random_seed=0):
     """
     np.random.seed(random_seed)
     data = defaultdict(list)
-    for irow, row in df_remain.iterrows():
+    for irow, row in df.iterrows():
         d = season_stats_dict[row.Season]
         dowin = np.random.randint(2)
         mult = (1 if dowin else -1)
@@ -153,14 +153,18 @@ def compile_training_data(df_remain, season_stats_dict, random_seed=0):
         data['totscore'].append(row.WScore+row.LScore)
         data['date'].append(row.Date)
         data['season'].append(row.Season)
+        data['gid'].append(row.gid)
         data['tid1'].append(id1)
         data['tid2'].append(id2)
+        data['rank1'].append(row.Wrank if dowin else row.Lrank)
+        data['rank2'].append(row.Lrank if dowin else row.Wrank)
         data['poss'].append(row.poss / (1.0 + 0.125*row.NumOT))
         data['pace1'].append(d[id1]['pace'])
         data['pace2'].append(d[id2]['pace'])
         data['HA'].append(('ANH'.find(row.WLoc)-1) * mult)
         data['effdiff'].append(d[id1]["Tneteff"] - d[id2]["Tneteff"])
         data['effsum'].append(d[id1]["Tcorroeff"] + d[id1]["Tcorrdeff"] + d[id2]["Tcorroeff"] + d[id2]["Tcorrdeff"])
+        data['neteffsum'].append(d[id1]["Tcorroeff"] - d[id1]["Tcorrdeff"] + d[id2]["Tcorroeff"] - d[id2]["Tcorrdeff"])
         data['raweffdiff'].append((d[id1]["Teff"] - d[id1]["Oeff"]) - \
                                    (d[id2]["Teff"] - d[id2]["Oeff"]))
         # 'T'+stat is difference in offensive stats between two teams. 'O'+stat is difference in defensive
@@ -170,7 +174,7 @@ def compile_training_data(df_remain, season_stats_dict, random_seed=0):
 #             data['T'+stat].append(d[id1]['T'+stat] - d[id2]['T'+stat])
 #             data['O'+stat].append(d[id1]['O'+stat] - d[id2]['O'+stat])
          
-    columns = ['season', 'date','tid1','tid2','result','totscore', 'margin', 
+    columns = ['season', 'date', 'gid','tid1','tid2','result','rank1','rank2','totscore', 'margin', 
                'HA','poss','pace1','pace2','effdiff','raweffdiff','effsum']
     columns += list(set(data.keys()) - set(columns))
     return pd.DataFrame(data, columns=columns)

@@ -9,7 +9,6 @@
     <meta name="description" content="">
     <meta name="author" content="">
     <link rel="icon" href="../static/images/favicon.ico">
-    <link rel="canonical" href="https://getbootstrap.com/docs/3.3/examples/starter-template/">
 
     <title>{{title}} - Bennett Marsh</title>
 
@@ -18,6 +17,8 @@
 
     <!-- Custom styles for this template -->
     <link href="../static/css/starter-template.css" rel="stylesheet">
+
+    <!-- cool slider -->
 
   </head>
   
@@ -53,16 +54,48 @@
       </div>
     </div>
 
-    <div class="container">
+    <div class="container" style="text-align:center;">
       <div class="cbb-input">
         <div class="input-group">
           <span class="input-group-addon" id="basic-addon1">Date</span>
           <input type="text" class="form-control" id="date_input" 
                  placeholder="2020-02-01" aria-describedby="basic-addon1">
         </div>
+
         <br>
+
+        <div class="wrapper">
+          <div class="cbb-slider-label"><label>I prefer the best teams</label></div>
+          <div class="cbb-slider">
+            <input id="slider1" type="range" min="-100" max="100" step="1" value="0"/>
+          </div>
+          <div class="cbb-slider-label"><label>I prefer close games</label></div>
+        </div>
+
+        <br>
+
+        <div class="wrapper">
+          <div class="cbb-slider-label"><label>Chance of an upset?</label></div>
+          <div class="cbb-slider">
+            <input id="slider2" type="range" min="-100" max="100" step="1" value="0"/>
+          </div>
+          <div class="cbb-slider-label"><label></label></div>
+        </div>
+
+        <br>
+
+        <div class="wrapper">
+          <div class="cbb-slider-label"><label>Slow-paced, defensive</label></div>
+          <div class="cbb-slider">
+            <input id="slider3" type="range" min="-100" max="100" step="1" value="0"/>
+          </div>
+          <div class="cbb-slider-label"><label>Fast-paced, offensive</label></div>
+        </div>
+
+        <br><br>
         <button id="submit_button">Get games!</button>
-      </div>
+      </div> <!-- cbb-input -->
+
     </div>
 
     <br>
@@ -77,13 +110,14 @@
 <script>
 $("#submit_button").click(function(){
     var date = $("#date_input").val();
-    console.log("HI");
-    console.log(date);
-    
+    var s1 = $("#slider1").val();
+    var s2 = $("#slider2").val();
+    var s3 = $("#slider3").val();
+
     $.ajax({
       url: "/games",
       type: "get",
-      data: {date: date},
+      data: {date: date, s1: s1, s2: s2, s3: s3},
       success: function(response) {
         $("#games_table").html(response);
       },
@@ -92,19 +126,11 @@ $("#submit_button").click(function(){
       }
     });
 });
+
 </script>
 
 <script src="../static/js/bootstrap.min.js"></script>
-    </div><!-- /.container -->
 
 
-    <!-- Bootstrap core JavaScript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
-    <script src="../static/js/bootstrap.min.js"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
   </body>
 </html>

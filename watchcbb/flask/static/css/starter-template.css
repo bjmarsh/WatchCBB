@@ -5,7 +5,30 @@ body {
   padding: 10px 15px;
   text-align: center;
 }
+.wrapper {
+  padding: 1px 1px;
+  height: 50px;
+  overflow: auto;
+  /* display: table-cell;          */
+  vertical-align: middle;
+  text-align: center;
+}
+
 .cbb-input {
   padding: 10px 15px;
   text-align: center;
+  display: inline-block;
+  width: 50%;
+}
+.cbb-slider {
+  width: 60%;
+  padding: 10px 0px;
+  float: left;
+  /* display: inline-block; */
+}
+.cbb-slider-label {
+  padding: 0px 10px;
+  width: 20%;
+  float: left;
+  display: inline;
 }

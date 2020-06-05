@@ -2,3 +2,6 @@
 REDDIT_CLIENT.txt
 PSQL_CREDENTIALS.txt
 *.pkl.gz
+bootstrap*
+game_data*.csv
+.ipynb_checkpoints

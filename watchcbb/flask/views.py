@@ -161,7 +161,7 @@ def get_games():
          c = rgba2hex(rgba)
          fmt_upset_prob = Markup(f"""<b><p style="color:{c};">{fmt_upset_prob}</p></b>""")
          
-      fmt_margin = "{:+.1f}".format(row.pred_margin)
+      fmt_margin = "{:+d}".format(int(round(row.pred_margin)))
 
       pace_string = ""
       if row.pred_pace > 2.0:

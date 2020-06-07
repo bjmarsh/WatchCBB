@@ -1,4 +1,5 @@
 import datetime as dt
+import gzip
 
 import urllib3
 from bs4 import BeautifulSoup
@@ -228,7 +229,54 @@ WAst,WTO,WStl,WBlk,WPF,LFGM,LFGA,LFGM3,LFGA3,LFTM,LFTA,LOR,LDR,LAst,LTO,LStl,LBl
 
         return polls
 
+    def get_roster_info(self, season, teams=None, stats=["MP","WS"], fout=None, out_type="df"):
+        """Get player IDs and statistics for a given season for every team in teams"""
+
+        if teams==None:
+            teams = self.get_team_list(season)
+
+        data = {'team_id':[], 'players':[]}
+        for stat in stats:
+            data[stat] = []
+
+        for tid in teams:
+            print(f"Getting roster for {tid}")
+
+            url = f"https://www.sports-reference.com/cbb/schools/{tid}/{season}.html"
+            html = str(get_html(url))
+
+            tablestartAdv = html.find('<table class="sortable stats_table" id="advanced"')
+            tableendAdv = html.find("</table>",tablestartAdv)
+            htmlAdv = html[tablestartAdv:tableendAdv+8]
+            soupAdv = BeautifulSoup(htmlAdv, "html.parser")
+            tableAdv = soupAdv.find("table", {"id":"advanced"})
+
+            if tableAdv is None:
+                print(f"WARNING: team {tid} not found for year {season}")
+                continue
+                
+            data['team_id'].append(tid)
+            for s in ['players']+stats:
+                data[s].append([])
+                
+            for tr in tableAdv.find("tbody").find_all("tr"):
+                data['players'][-1].append(tr.find("td",{"data-stat":"player"})["data-append-csv"])
+                
+                for stat in stats:
+                    data[stat][-1].append(float(tr.find("td",{"data-stat":stat.lower()}).string))
+
+        if fout:
+            if out_type == "df":
+                df = pd.DataFrame(data, columns=['team_id','players']+stats)
+                df.to_pickle(fout, compression='gzip')
+
+        return data
+
+
 if __name__=="__main__":
     
     sr = SportsRefScrape()
-    sr.get_game_data(2020, fout="../scratch/test.csv", overwrite=True, teams=['purdue'], verbose=True)
+
+    # sr.get_game_data(2020, fout="../scratch/test.csv", overwrite=True, teams=['purdue'], verbose=True)
+
+    sr.get_roster_info(2020, teams=['purdue'], fout='test.pkl.gz')

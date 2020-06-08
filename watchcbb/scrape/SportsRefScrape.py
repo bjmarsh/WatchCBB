@@ -1,20 +1,13 @@
 import datetime as dt
 import gzip
 
-import urllib3
 from bs4 import BeautifulSoup
 
 import numpy as np
 import pandas as pd
 
-def get_html(url):
-    """Use urllib3 to retrieve the html source of a given url"""
+from watchcbb.scrape.common import get_html
 
-    http = urllib3.PoolManager()
-    r = http.request('GET', url)
-    data = r.data
-    r.release_conn()
-    return data
 
 class SportsRefScrape:
     """Class to perform various web-scraping routines from sports-reference.com/cbb"""
@@ -263,7 +256,8 @@ WAst,WTO,WStl,WBlk,WPF,LFGM,LFGA,LFGM3,LFGA3,LFTM,LFTA,LOR,LDR,LAst,LTO,LStl,LBl
                 data['players'][-1].append(tr.find("td",{"data-stat":"player"})["data-append-csv"])
                 
                 for stat in stats:
-                    data[stat][-1].append(float(tr.find("td",{"data-stat":stat.lower()}).string))
+                    x = tr.find("td",{"data-stat":stat.lower()}).string
+                    data[stat][-1].append(float(x) if x is not None else 0.0)
 
         if fout:
             if out_type == "df":
@@ -279,4 +273,4 @@ if __name__=="__main__":
 
     # sr.get_game_data(2020, fout="../scratch/test.csv", overwrite=True, teams=['purdue'], verbose=True)
 
-    sr.get_roster_info(2020, teams=['purdue'], fout='test.pkl.gz')
+    sr.get_roster_info(2017, teams=['utah-state'], fout='test.pkl.gz')

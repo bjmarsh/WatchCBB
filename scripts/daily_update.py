@@ -19,6 +19,7 @@ while TODAY <= dt.date(2020,3,11):
     df_games = sql.df_from_query(""" 
         SELECT * FROM game_data
         WHERE "Season"={season} AND "Date"<'{today}'
+        ORDER BY "Date"
     """.format(season=SEASON, today=TODAY))
 
     season_stats_dict = utils.compute_season_stats(df_games)

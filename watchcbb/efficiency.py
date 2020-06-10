@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0):
+def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0, preseason_blend=0.0):
     """ Compute strength-of-schedule adjusted offensive and defensive efficiency ratings.
         Takes as input a dict of season stats as returned by utils.compute_season_stats
         HOME_CORR is an empiracle home court advantage parameter, derived when training the model
@@ -43,7 +43,10 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0):
 
     # iterate until corrected efficiencies aren't changing any more
     maxchange = 100
+    niter = -1
     while maxchange > 0.001:
+    # for iiter in range(50):
+        niter += 1
         maxchange = 0.0
         # compute opponents' average efficiencies
         for year in statdict:
@@ -79,7 +82,7 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0):
                 avg_stat["d"+stat] = GetAvg(year, "d"+stat)
             avg_oeff = GetAvg(year, "oeff")
             avg_deff = GetAvg(year, "deff")
-            avg_pace = np.mean([statdict[year][tid]["pacetemp"] for tid in statdict[year]])
+            avg_pace = np.mean([statdict[year][tid]["pacetemp"] for tid in statdict[year] if statdict[year][tid]["TFGA"]>0])
             for tid in statdict[year].keys():
                 d = statdict[year]
                 if d[tid]["TFGA"]==0:
@@ -101,16 +104,41 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0):
                     opp = d[tid]["opps"][i]
                     gamepace = d[tid]["poss"][i] / (1.0 + 0.125*d[tid]["nOT"][i])
                     ## comes from formula  game_pace = t1_pace * t2_pace/avg_pace
-                    d[tid]["pace"] += (gamepace*avg_pace / d[opp]["pacetemp"]) / ngames  
+                    d[tid]["pace"] += (gamepace*(avg_pace / d[opp]["pacetemp"])**conv_param) / ngames  
                     # d[tid]["pace"] += (gamepace + avg_pace - d[opp]["pacetemp"]) / ngames  
                     # d[tid]["pace"] += (2*gamepace - d[opp]["pacetemp"]) / ngames  
 
         for year in statdict:
             for tid in statdict[year]:
                 statdict[year][tid]["pacetemp"] = statdict[year][tid]["pace"]
-            
+
+
+    p = preseason_blend
     for year in statdict:
         for tid in statdict[year]:
-            statdict[year][tid].pop("pacetemp")
-            statdict[year][tid]["Tneteff"] = statdict[year][tid]["Tcorroeff"] - statdict[year][tid]["Tcorrdeff"]
-            statdict[year][tid]["Oneteff"] = statdict[year][tid]["Ocorroeff"] - statdict[year][tid]["Ocorrdeff"]
+            d = statdict[year][tid]
+            d.pop("pacetemp")
+            d["Tneteff"] = d["Tcorroeff"] - d["Tcorrdeff"]
+            d["Oneteff"] = d["Ocorroeff"] - d["Ocorrdeff"]
+
+            if d.get("preseason_eff", -999) > -900:
+                if d["TFGA"] > 0:
+                    d["CompositeRating"] = p*d["preseason_eff"] + (1-p)*d["Tneteff"]
+                    d["CompositeOff"] = p*d["preseason_oeff"] + (1-p)*d["Tcorroeff"]
+                    d["CompositeDef"] = p*d["preseason_deff"] + (1-p)*d["Tcorrdeff"]
+                    d["CompositePace"] = p*d["preseason_pace"] + (1-p)*d["pace"]
+                else:
+                    d["CompositeRating"] = d["preseason_eff"]
+                    d["CompositeOff"] = d["preseason_oeff"]
+                    d["CompositeDef"] = d["preseason_deff"]
+                    d["CompositePace"] = d["preseason_pace"]
+            else:
+                d["CompositeRating"] = d["Tneteff"]
+                d["CompositeOff"] = d["Tcorroeff"]
+                d["CompositeDef"] = d["Tcorrdeff"]
+                d["CompositePace"] = d["pace"]
+                
+                    
+
+
+

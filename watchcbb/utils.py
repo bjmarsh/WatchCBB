@@ -34,12 +34,50 @@ def partition_games(df, frac=0.7):
         
     return first, second
 
+def lookup_val(df, year, tid, colname, default_val=None):
+    """ Return the value of 'colname' for the year and team ID specified
+        This assumes that each (year,tid) pair appears in exactly one row
+    """
+    vals =  df.loc[(df.year==year) & (df.team_id==tid)][colname].values
+    if vals.size==0:
+        if default_val is None:
+            raise Exception(f"Could not find team {tid} in year {year}")
+        return default_val
+    elif vals.size==1:
+        return vals[0]
+    else:
+        raise Exception(f"Found multiple entries of team {tid} in year {year}")
 
-def compute_season_stats(df):
+def compute_season_stats(df, df_preseason=None, force_all_teams=False, df_teams=None):
     """Take the per-game data frame and aggregate stats on a per team/season basis
        Returns a dict structured like stats[year][team_id][stat_name]
+       If df_preseason is not None, also include preseason predictions of efficiency/pace
     """
     
+    def init_team_dict(d, year, tid):
+        if year not in d:
+            raise Exception(f"{year} must be a key of dictionary")
+        if tid in d[year]:
+            raise Exception(f"team_id {tid} already initialized in dictionary")
+        d[year][tid] = {}
+        d[year][tid]["wins"] = 0
+        d[year][tid]["losses"] = 0
+        d[year][tid]["totOT"] = 0
+        d[year][tid]["totPoss"] = 0
+        d[year][tid]["opps"] = []
+        d[year][tid]["scores"] = []
+        d[year][tid]["HA"] = []
+        d[year][tid]["poss"] = []
+        d[year][tid]["nOT"] = []
+        for sn in STATNAMES:
+            d[year][tid]["T"+sn] = 0
+            d[year][tid]["O"+sn] = 0
+        if df_preseason is not None:
+            d[year][tid]["preseason_eff"] = lookup_val(df_preseason, year, tid, "pred_eff", -10.0)
+            d[year][tid]["preseason_oeff"] = lookup_val(df_preseason, year, tid, "pred_oeff", 100.0)
+            d[year][tid]["preseason_deff"] = lookup_val(df_preseason, year, tid, "pred_deff", 110.0)
+            d[year][tid]["preseason_pace"] = lookup_val(df_preseason, year, tid, "pred_pace", 69)
+
     stats = {}
     for irow,row in df.iterrows():
         year = row.Season
@@ -47,24 +85,21 @@ def compute_season_stats(df):
         lid = row.LTeamID
         if year not in stats:
             stats[year] = {}
+
+            # force initialization of all teams, even if they've played no games yet
+            if force_all_teams:
+                if df_teams is None:
+                    raise Exception("Must pass a df_teams if force_all_teams is True")
+                for tid in df_teams.loc[(df_teams.year_start<=year) & \
+                                        (df_teams.year_end>=year)].team_id.values:
+                    init_team_dict(stats, year, tid)
+            
        
         # initialize values if we haven't seen this team yet
         for tid in (wid,lid):
             if tid not in stats[year]:
-                stats[year][tid] = {}
-                stats[year][tid]["wins"] = 0
-                stats[year][tid]["losses"] = 0
-                stats[year][tid]["totOT"] = 0
-                stats[year][tid]["totPoss"] = 0
-                stats[year][tid]["opps"] = []
-                stats[year][tid]["scores"] = []
-                stats[year][tid]["HA"] = []
-                stats[year][tid]["poss"] = []
-                stats[year][tid]["nOT"] = []
-                for sn in STATNAMES:
-                    stats[year][tid]["T"+sn] = 0
-                    stats[year][tid]["O"+sn] = 0
-        
+                init_team_dict(stats, year, tid)
+
         for sn in STATNAMES:
             stats[year][wid]["T"+sn] += row["W"+sn]
             stats[year][wid]["O"+sn] += row["L"+sn]
@@ -138,7 +173,7 @@ def add_advanced_stats(df):
 
 
 
-def compile_training_data(df, season_stats_dict, random_seed=0, sort='random'):
+def compile_training_data(df, season_stats_dict, random_seed=0, sort='random', include_preseason=False):
     """Take in a raw game-level dataframe as well as a dictionary of season stats,
        and generate a tidy dataframe amenable to feeding into ML models.
        Randomly choose a team to be the "reference" for relative features,
@@ -172,6 +207,8 @@ def compile_training_data(df, season_stats_dict, random_seed=0, sort='random'):
         data['pace1'].append(d[id1]['pace'])
         data['pace2'].append(d[id2]['pace'])
         data['HA'].append(('ANH'.find(row.WLoc)-1) * mult)
+        if include_preseason:
+            data['preseason_effdiff'].append(d[id1]["preseason_eff"] - d[id2]["preseason_eff"])
         data['effdiff'].append(d[id1]["Tneteff"] - d[id2]["Tneteff"])
         data['effsum'].append(d[id1]["Tcorroeff"] + d[id1]["Tcorrdeff"] + d[id2]["Tcorroeff"] + d[id2]["Tcorrdeff"])
         data['neteffsum'].append(d[id1]["Tcorroeff"] - d[id1]["Tcorrdeff"] + d[id2]["Tcorroeff"] - d[id2]["Tcorrdeff"])

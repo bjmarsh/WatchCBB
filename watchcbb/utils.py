@@ -209,6 +209,8 @@ def compile_training_data(df, season_stats_dict, random_seed=0, sort='random', i
         data['HA'].append(('ANH'.find(row.WLoc)-1) * mult)
         if include_preseason:
             data['preseason_effdiff'].append(d[id1]["preseason_eff"] - d[id2]["preseason_eff"])
+            data['preseason_effsum'].append(d[id1]["preseason_oeff"] + d[id1]["preseason_deff"] + d[id2]["preseason_oeff"] + d[id2]["preseason_deff"])
+            data['preseason_paceprod'].append(d[id1]["preseason_pace"]*d[id2]["preseason_pace"])
         data['effdiff'].append(d[id1]["Tneteff"] - d[id2]["Tneteff"])
         data['effsum'].append(d[id1]["Tcorroeff"] + d[id1]["Tcorrdeff"] + d[id2]["Tcorroeff"] + d[id2]["Tcorrdeff"])
         data['neteffsum'].append(d[id1]["Tcorroeff"] - d[id1]["Tcorrdeff"] + d[id2]["Tcorroeff"] - d[id2]["Tcorrdeff"])

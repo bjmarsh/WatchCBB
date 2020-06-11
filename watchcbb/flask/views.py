@@ -23,7 +23,8 @@ from watchcbb.flask import app
 
 # Get a dictionary of nice "display names"
 df_teams = sql.df_from_query(""" SELECT * from teams """)
-disp_names = dict(zip(df_teams.team_id.values, df_teams.display_name.values))
+tid2dn = dict(zip(df_teams.team_id, df_teams.display_name))
+tid2conf = dict(zip(df_teams.team_id, df_teams.conference))
 
 # Load database of historical AP rankings
 df_ap = sql.df_from_query(""" SELECT * from ap_rankings """)
@@ -35,6 +36,18 @@ for i in range(1,26):
 dates = sql.df_from_query(""" SELECT "Date" FROM game_data WHERE "Season"=2020 ORDER BY "Date" """).Date
 TOTGAMES = dates.size
 season_frac_dict = {date:(dates<date).mean() for date in dates}
+
+# conference name mapping
+conf_names = {
+   "B10"   : "Big Ten",
+   "B12"   : "Big 12",
+   "ACC"   : "ACC",
+   "SEC"   : "SEC",
+   "BE"    : "Big East",
+   "MWC"   : "MWC",
+   "Amer"  : "American",
+   "other" : "other",
+}
 
 def get_game_models(fname='models/game_regressions.pkl'):
    """ Load pre-trained models from pickle file """
@@ -93,11 +106,17 @@ def get_games():
    """ Main request that returns a list of recommended games """
 
    # get the input that the client sends
-   date = request.args.get('date')
+   date = request.args.get('date', "")
    # three slider values
-   s1 = float(request.args.get('s1'))
-   s2 = float(request.args.get('s2'))
-   s3 = float(request.args.get('s3'))
+   s1 = float(request.args.get('s1', 0))
+   s2 = float(request.args.get('s2', 0))
+   s3 = float(request.args.get('s3', 0))
+   checks = request.args.get('checks', '11111111')
+
+   allowed_confs = []
+   for i,c in enumerate(["B10","B12","ACC","SEC","BE","MWC","Amer","other"]):
+      if checks[i]=='1':
+         allowed_confs.append(conf_names[c])
 
    try:
       date = dt.date(*[int(x) for x in date.split('-')])
@@ -192,12 +211,22 @@ def get_games():
                "upset_prob","is_rivalry","reddit_score","preseason_paceprod"]].head(20))
 
    games = []
+   nselected = 0
    for i,row in data.iterrows():
-      if i >= 10:
+      if nselected >= 10:
          break
       
       datestr = "{0}, {1}/{2}".format(row.date.strftime("%a"), row.date.month, row.date.day)
       t1, t2 = row.tid1, row.tid2
+
+      c1, c2 = tid2conf[t1], tid2conf[t2]
+      if c1 not in conf_names.values():
+         c1 = 'other'
+      if c2 not in conf_names.values():
+         c2 = 'other'
+      if c1 not in allowed_confs and c2 not in allowed_confs:
+         continue
+
       vs_str = '@'
       if row.HA == 1:
          t1, t2 = t2, t1
@@ -229,13 +258,14 @@ def get_games():
          pace_string = "<p style='color:{};'>Slow</p>".format(rgba2hex(cm.get_cmap('Reds')(0.5)))
       pace_string = Markup(pace_string)
          
+      nselected += 1
       games.append(dict(
          i = i+1,
          date = datestr, 
          t1 = t1,
          t2 = t2,
-         dn1 = disp_names[t1],
-         dn2 = disp_names[t2],
+         dn1 = tid2dn[t1],
+         dn2 = tid2dn[t2],
          vs_str = vs_str,
          r1str = r1str,
          r2str = r2str,

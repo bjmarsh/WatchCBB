@@ -33,6 +33,11 @@ body {
   display: inline;
 }
 
+.conf-chk-div {
+    width: 25%;
+    float: left;
+}
+
 .results-table {
     font-size: 20px;
     width: 90%;

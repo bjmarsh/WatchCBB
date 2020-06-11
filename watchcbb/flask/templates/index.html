@@ -92,6 +92,38 @@
           <div class="cbb-slider-label"><label>Fast-paced, offensive</label></div>
         </div>
 
+        <br>
+        <p style="font-size:16px;font-weight:bold">Conferences:</p>
+        <div class="wrapper" style="width:90%;padding-left:10%;display:inline-block;text-align:left;">
+          <div class="conf-chk-div">
+            <input type="checkbox" id="chk_B10", value="B10" checked> <label for="chk_B10">Big Ten</label>
+          </div>
+          <div class="conf-chk-div">
+            <input type="checkbox" id="chk_B12", value="B12" checked> <label for="chk_B12">Big 12</label>
+          </div>
+          <div class="conf-chk-div">
+            <input type="checkbox" id="chk_ACC", value="ACC" checked> <label for="chk_ACC">ACC</label>
+          </div>
+          <div class="conf-chk-div">
+            <input type="checkbox" id="chk_SEC", value="SEC" checked> <label for="chk_SEC">SEC</label>
+          </div>
+        </div>
+        <br>
+        <div class="wrapper" style="width:90%;padding-left:10%;display:inline-block;text-align:left;">
+          <div class="conf-chk-div">
+            <input type="checkbox" id="chk_BE", value="BE" checked> <label for="chk_BE">Big East</label>
+          </div>
+          <div class="conf-chk-div">
+            <input type="checkbox" id="chk_MWC", value="MWC" checked> <label for="chk_MWC">Mtn. West</label>
+          </div>
+          <div class="conf-chk-div">
+            <input type="checkbox" id="chk_Amer", value="Amer" checked> <label for="chk_Amer">American</label>
+          </div>
+          <div class="conf-chk-div">
+            <input type="checkbox" id="chk_other", value="other" checked> <label for="chk_other">Other</label>
+          </div>
+        </div>
+
         <br><br>
         <button id="submit_button" style="font-size:18px;">Get games!</button>
       </div> <!-- cbb-input -->
@@ -113,11 +145,20 @@ $("#submit_button").click(function(){
     var s1 = $("#slider1").val();
     var s2 = $("#slider2").val();
     var s3 = $("#slider3").val();
+    var confs = ["B10","B12","ACC","SEC","BE","MWC","Amer","other"];
+    var checks = "";
+    for(var i=0; i<confs.length; i++){
+        checks += ($("#chk_"+confs[i]).is(":checked") ? "1" : "0");
+    }
 
     $.ajax({
       url: "/games",
       type: "get",
-      data: {date: date, s1: s1, s2: s2, s3: s3},
+      data: {date: date, 
+             s1: s1, 
+             s2: s2, 
+             s3: s3,
+             checks: checks},
       success: function(response) {
         $("#games_table").html(response);
       },

@@ -1,9 +1,12 @@
 import os
+import pickle
+import gzip
+from collections import defaultdict
+from tqdm import tqdm
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
-from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -214,6 +217,7 @@ def compile_training_data(df, season_stats_dict, random_seed=0, sort='random', i
         data['effdiff'].append(d[id1]["Tneteff"] - d[id2]["Tneteff"])
         data['effsum'].append(d[id1]["Tcorroeff"] + d[id1]["Tcorrdeff"] + d[id2]["Tcorroeff"] + d[id2]["Tcorrdeff"])
         data['neteffsum'].append(d[id1]["Tcorroeff"] - d[id1]["Tcorrdeff"] + d[id2]["Tcorroeff"] - d[id2]["Tcorrdeff"])
+        data['compratsum'].append(d[id1]["CompositeRating"] + d[id2]["CompositeRating"])
         data['raweffdiff'].append((d[id1]["Teff"] - d[id1]["Oeff"]) - \
                                    (d[id2]["Teff"] - d[id2]["Oeff"]))
         # 'T'+stat is difference in offensive stats between two teams. 'O'+stat is difference in defensive
@@ -227,6 +231,70 @@ def compile_training_data(df, season_stats_dict, random_seed=0, sort='random', i
                'HA','poss','pace1','pace2','effdiff','raweffdiff','effsum']
     columns += list(set(data.keys()) - set(columns))
     return pd.DataFrame(data, columns=columns)
+
+
+def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, return_cols=None):
+    """ 
+    """
+    with open(model_file, 'rb') as fid:
+        pca, logreg, logreg_simple, linreg_pace, linreg_margin, linreg_total = pickle.load(fid)
+    if return_cols is None:
+        return_cols = ['gid','result','HA','effdiff','preseason_effdiff',
+                       'prob','preseason_prob','blended_prob',
+                       'poss','pred_pace','pred_pace_pre','pred_pace_blend',
+                       'totscore','pred_total','pred_total_pre','pred_total_blend',
+                       'margin','pred_margin','pred_margin_pre','pred_margin_blend']
+    dfs = []
+    total_games = defaultdict(int)
+    for date in tqdm(dates):
+        df_games = df_allgames.loc[df_allgames.Date==date]
+        year = df_games.Season.values[0]
+        total_games[year] += df_games.shape[0]
+        try:
+            with gzip.open('{0}/{1}.pkl.gz'.format(pickled_stats_dir.format(year=year), date), 'rb') as fid:
+                ssd, _ = pickle.load(fid)
+        except FileNotFoundError:
+            continue
+        games = compile_training_data(df_games, ssd, sort='alphabetical', include_preseason=True)
+        games = games.loc[(abs(games.effdiff)<900) & ~games.pace1.isna()]
+        if games.shape[0] == 0:
+            continue
+        
+        xf = pca.transform(games[ADVSTATFEATURES])
+        for i in range(len(ADVSTATFEATURES)):
+            games["PCA"+str(i)] = xf[:,i]
+
+        probs = logreg.predict_proba(games[PCAFEATURES + ['HA']])[:,1]
+        probs_pre = logreg_simple.predict_proba(games[['preseason_effdiff','HA']])[:,1] 
+        pred_pace = linreg_pace.predict(np.array(games.pace1*games.pace2).reshape(-1,1))
+        pred_pace_pre = linreg_pace.predict(games[['preseason_paceprod']])
+        pred_total = linreg_total.predict((pred_pace*games.effsum.values).reshape(-1,1))
+        pred_total_pre = linreg_total.predict((pred_pace_pre*games.preseason_effsum.values).reshape(-1,1))
+        pred_margin = linreg_margin.predict(np.array([pred_pace*games.effdiff.values, games.HA.values]).T)
+        pred_margin_pre = linreg_margin.predict(np.array([pred_pace_pre*games.preseason_effdiff.values, games.HA.values]).T)
+
+        p = max(0, 1-total_games[year]/5400.0)**2.6
+        probs_blend = 1 / (1 + np.exp(-p*(-np.log(1./probs_pre-1)) - (1-p)*(-np.log(1./probs-1))))
+        pred_pace_blend = p*pred_pace_pre + (1-p)*pred_pace
+        pred_total_blend = p*pred_total_pre + (1-p)*pred_total
+        pred_margin_blend = p*pred_margin_pre + (1-p)*pred_margin
+
+        games["prob"] = probs
+        games["preseason_prob"] = probs_pre
+        games["blended_prob"] = probs_blend
+        games['pred_pace'] = pred_pace
+        games['pred_pace_pre'] = pred_pace_pre
+        games['pred_pace_blend'] = pred_pace_blend
+        games['pred_total'] = pred_total
+        games['pred_total_pre'] = pred_total_pre
+        games['pred_total_blend'] = pred_total_blend
+        games['pred_margin'] = pred_margin
+        games['pred_margin_pre'] = pred_margin_pre
+        games['pred_margin_blend'] = pred_margin_blend
+
+        dfs.append(games[return_cols].copy())
+
+    return pd.concat(dfs, ignore_index=True)
 
 
 def train_test_split_by_year(data, train_years, test_years, pca_model=None):

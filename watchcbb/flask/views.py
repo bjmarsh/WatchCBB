@@ -2,7 +2,7 @@ import datetime as dt
 import pickle
 import gzip
 
-from flask import Flask, render_template, request, Markup
+from flask import Flask, g, render_template, request, Markup
 import numpy as np
 import pandas as pd
 
@@ -17,6 +17,10 @@ import watchcbb.utils as utils
 import watchcbb.sql as sql
 from watchcbb.flask import app
 
+#######################################################################
+# Load some constant global data that will be used in request function
+#######################################################################
+
 # Get a dictionary of nice "display names"
 df_teams = sql.df_from_query(""" SELECT * from teams """)
 disp_names = dict(zip(df_teams.team_id.values, df_teams.display_name.values))
@@ -26,6 +30,27 @@ df_ap = sql.df_from_query(""" SELECT * from ap_rankings """)
 df_ap = df_ap.sort_values('date').reset_index(drop=True)
 for i in range(1,26):
    df_ap[f'r{i}'] = df_ap[f'r{i}'].apply(lambda x:[y.strip() for y in x.strip('{}').split(',')])
+
+# Get a map of season completion fraction
+dates = sql.df_from_query(""" SELECT "Date" FROM game_data WHERE "Season"=2020 ORDER BY "Date" """).Date
+TOTGAMES = dates.size
+season_frac_dict = {date:(dates<date).mean() for date in dates}
+
+def get_game_models(fname='models/game_regressions.pkl'):
+   """ Load pre-trained models from pickle file """
+
+   if 'game_models' not in g:
+      with open(fname, 'rb') as fid:
+         game_models = pickle.load(fid)
+   return game_models
+
+def get_reddit_model(fname='models/reddit_regression.pkl'):
+   """ Load pre-trained reddit model from pickle file """
+
+   if 'reddit_model' not in g:
+      with open(fname, 'rb') as fid:
+         reddit_model = pickle.load(fid)
+   return reddit_model
 
 def get_rank(ranks, tid):
    """ Find tid in a jagged array of ranks in a given week. Return None if unranked """
@@ -65,8 +90,10 @@ def index():
 
 @app.route('/games', methods=['GET'])
 def get_games():
-   date = request.args.get('date')
+   """ Main request that returns a list of recommended games """
 
+   # get the input that the client sends
+   date = request.args.get('date')
    # three slider values
    s1 = float(request.args.get('s1'))
    s2 = float(request.args.get('s2'))
@@ -78,63 +105,91 @@ def get_games():
       return """<big><p style="color:red;">Please enter a date in the format YYYY-mm-dd</p></big>"""
 
    date_end = date+dt.timedelta(7)
+   season_frac = season_frac_dict[date]
+
+   # get current AP rankings
+   idx = np.argmax(date < df_ap.date) - 1
+   ranks = df_ap.iloc[idx].values[1:].tolist()
+
 
    sql_query = """
-       SELECT * FROM game_data WHERE "Date">='{date}' AND "Date"<'{date_end}';
+       SELECT * FROM game_data WHERE "Date">='{date}' AND "Date"<'{date_end}' ORDER BY "Date";
    """.format(date=date, date_end=date_end)
 
    df_games = sql.df_from_query(sql_query)
+
+   # Update ranks to reflect rank right now, not at time of game
+   df_games.Wrank = df_games.WTeamID.apply(lambda tid: get_rank(ranks, tid)).fillna(-1)
+   df_games.Lrank = df_games.LTeamID.apply(lambda tid: get_rank(ranks, tid)).fillna(-1)
    
    try:
-      with gzip.open("data/season_stats/{0}.pkl.gz".format(date), 'rb') as fid:
+      with gzip.open("data/season_stats/2020/{0}.pkl.gz".format(date), 'rb') as fid:
          season_stats_dict, season_stats_df = pickle.load(fid)
    except:
       return """<big><p style="color:red;">Invalid date! Must be during the 2019-20 season.</p></big>"""
 
-   data = utils.compile_training_data(df_games, season_stats_dict, sort='alphabetical')
+   # get data into format that can be fed into models
+   data = utils.compile_training_data(df_games, season_stats_dict, sort='alphabetical', include_preseason=True)
+
 
    ## get mean/std of pace for use later
-   mean_pace = season_stats_df.pace.mean()
-   std_pace = season_stats_df.pace.std()
+   mean_pace = season_stats_df.CompositePace.mean()
+   std_pace = season_stats_df.CompositePace.std()
 
-   with open('models/game_regressions.pkl', 'rb') as fid:
-      pca, logreg, linreg_pace, linreg_margin = pickle.load(fid)
-   with open('models/reddit_regression.pkl', 'rb') as fid:
-      linreg_reddit = pickle.load(fid)
+   ## Load game and reddit models from pickle files
+   pca, logreg, logreg_simple, linreg_pace, linreg_margin, linreg_total = get_game_models()
+   linreg_reddit = get_reddit_model()
 
-   ### adjust coefficients from sliders
-   linreg_reddit.coef_[1] *= (s2+100)/100
-   linreg_reddit.coef_ = np.append(linreg_reddit.coef_, [0.0])
-   linreg_reddit.coef_[4] = s3/200
+   ## adjust coefficients from sliders (which are in the range [-100,100])
+   ## coefficients are NetEffSum, Upset prob, |pred_margin|, is_rivalry
    linreg_reddit.coef_[0] -= 0.02*s1/100
    linreg_reddit.coef_[2] -= 0.02*s1/100
+   linreg_reddit.coef_[1] *= (s2+100)/100
+   linreg_reddit.coef_ = np.append(linreg_reddit.coef_, [0.0])
+   linreg_reddit.coef_[4] = s3/300
 
    xf = pca.transform(data[utils.ADVSTATFEATURES])
    for i in range(len(utils.ADVSTATFEATURES)):
       data["PCA"+str(i)] = xf[:,i]
 
-   probs = logreg.predict_proba(data[utils.PCAFEATURES + ['HA']])[:,1]
-   data["prob"] = probs
-   data["pred_pace"] = linreg_pace.predict(np.array([data.pace1*data.pace2]).T)
-   data["pred_margin"] = linreg_margin.predict(
-      np.array([data["pred_pace"]*data.effdiff, data.HA]).T
-      )
+   # the rows where at least one team has no game data
+   bad_rows = ((data.effsum > 1000) | (data.pace1.isna()) | (data.pace2.isna()))
+
+   # win probability
+   probs_cur = np.clip(logreg.predict_proba(data[utils.PCAFEATURES + ['HA']])[:,1], 0.001, 0.999)
+   probs_pre = logreg_simple.predict_proba(data[['preseason_effdiff','HA']])[:,1]
+   p = (1-season_frac)**2.6
+   probs_blend = 1 / (1 + np.exp(-p*(-np.log(1./probs_pre-1)) - (1-p)*(-np.log(1./probs_cur-1))))
+   data["prob"] = probs_blend
+
+   # pace
+   pace_cur = linreg_pace.predict(np.array([data.pace1.fillna(0)*data.pace2.fillna(0)]).T)
+   pace_pre = linreg_pace.predict(np.array([data.preseason_paceprod]).T)
+   data["pred_pace"] = p*pace_pre + (1-p)*pace_cur
+
+   margin_cur = linreg_margin.predict(np.array([pace_cur*data.effdiff, data.HA]).T)
+   margin_pre = linreg_margin.predict(np.array([pace_pre*data.preseason_effdiff, data.HA]).T)
+   data["pred_margin"] = p*margin_pre + (1-p)*margin_cur
+
+   # for the bad rows, use pure preseason predictions
+   data.loc[bad_rows, 'prob'] = probs_pre[bad_rows]
+   data.loc[bad_rows, 'pred_pace'] = pace_pre[bad_rows]
+   data.loc[bad_rows, 'pred_margin'] = margin_pre[bad_rows]
+
    data["pred_pace"] = (data["pred_pace"] - mean_pace) / std_pace
    data["abs_pred_margin"] = data["pred_margin"].abs()
    data["upset_prob"] = data.apply(utils.get_df_upset_prob, axis=1)
    data["is_rivalry"] = data.apply(utils.is_rivalry, axis=1).astype(int)
-   
+
    data["reddit_score"] = 10**linreg_reddit.predict(
-      np.array([data.neteffsum, data.upset_prob, data.abs_pred_margin, data.is_rivalry, data.pred_pace]).T
+      np.array([data.compratsum, data.upset_prob, data.abs_pred_margin, data.is_rivalry*0, data.pred_pace]).T
    ) - 1
 
    data = data.sort_values('reddit_score', ascending=False).reset_index(drop=True)
 
-   print(data[["gid","prob","neteffsum","pred_pace","pred_margin",
-               "upset_prob","is_rivalry","reddit_score"]].head(20))
-
-   idx = np.argmax(date < df_ap.date) - 1
-   ranks = df_ap.iloc[idx].values[1:].tolist()
+   print(mean_pace, std_pace)
+   print(data[["gid",'pace1','pace2',"prob","compratsum","pred_pace","pred_margin",
+               "upset_prob","is_rivalry","reddit_score","preseason_paceprod"]].head(20))
 
    games = []
    for i,row in data.iterrows():

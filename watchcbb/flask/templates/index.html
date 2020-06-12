@@ -13,10 +13,10 @@
     <title>{{title}} - Bennett Marsh</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="../static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="static/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="../static/css/starter-template.css" rel="stylesheet">
+    <link href="static/css/starter-template.css" rel="stylesheet">
 
     <!-- cool slider -->
 
@@ -33,7 +33,10 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#"> {{title}} </a>
+            <a class="navbar-brand" href="#" style="color:white;font-size:22pt;margin-bottom:5px">
+            <img src="static/images/basketball.png" style="height:24pt;display:inline-block;"> 
+              {{title}} 
+            </a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
@@ -166,6 +169,19 @@ $("#submit_button").click(function(){
         //Do Something to handle error
       }
     });
+});
+
+// Make enter the same as button click
+var input = document.getElementById("date_input");
+
+input.addEventListener("keyup", function(event) {
+  // Number 13 is the "Enter" key on the keyboard
+  if (event.keyCode === 13) {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("submit_button").click();
+  }
 });
 
 </script>

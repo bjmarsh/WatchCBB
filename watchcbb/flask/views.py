@@ -164,9 +164,10 @@ def get_games():
    ## coefficients are NetEffSum, Upset prob, |pred_margin|, is_rivalry
    linreg_reddit.coef_[0] -= 0.02*s1/100
    linreg_reddit.coef_[2] -= 0.02*s1/100
-   linreg_reddit.coef_[1] *= (s2+100)/100
+   linreg_reddit.coef_[1] *= ((s2+100)/100)**2.5
    linreg_reddit.coef_ = np.append(linreg_reddit.coef_, [0.0])
-   linreg_reddit.coef_[4] = s3/300
+   linreg_reddit.coef_[3] /= 3
+   linreg_reddit.coef_[4] = s3/400
 
    xf = pca.transform(data[utils.ADVSTATFEATURES])
    for i in range(len(utils.ADVSTATFEATURES)):
@@ -202,7 +203,7 @@ def get_games():
    data["is_rivalry"] = data.apply(utils.is_rivalry, axis=1).astype(int)
 
    data["reddit_score"] = 10**linreg_reddit.predict(
-      np.array([data.compratsum, data.upset_prob, data.abs_pred_margin, data.is_rivalry*0, data.pred_pace]).T
+      np.array([data.compratsum, data.upset_prob**2, data.abs_pred_margin, data.is_rivalry, data.pred_pace]).T
    ) - 1
 
    data = data.sort_values('reddit_score', ascending=False).reset_index(drop=True)

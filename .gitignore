@@ -5,3 +5,4 @@ PSQL_CREDENTIALS.txt
 bootstrap*
 game_data*.csv
 .ipynb_checkpoints
+rsci_raw

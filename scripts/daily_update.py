@@ -11,8 +11,8 @@ import watchcbb.sql as sql
 import watchcbb.utils as utils
 import watchcbb.efficiency as eff
 
-TODAY = dt.date(2019,11,6)
-while TODAY <= dt.date(2020,3,11):
+TODAY = dt.date(2017,11,11)
+while TODAY <= dt.date(2018,4,2):
     print(f"Doing date {TODAY}")
 
     SEASON = TODAY.year if TODAY.month < 6 else TODAY.year+1
@@ -50,7 +50,8 @@ while TODAY <= dt.date(2020,3,11):
     # print(season_stats_df.sort_values("Tneteff", ascending=False)[["team_id","CompositeRating","Tneteff"]].head(20))
     # break
  
-    with gzip.open('../data/season_stats/{0}.pkl.gz'.format(TODAY), 'wb') as fid:
+    os.makedirs(f'../data/season_stats/{SEASON}', exist_ok=True)
+    with gzip.open('../data/season_stats/{0}/{1}.pkl.gz'.format(SEASON, TODAY), 'wb') as fid:
         pickle.dump((season_stats_dict, season_stats_df), fid, protocol=-1)
 
     TODAY += dt.timedelta(1)

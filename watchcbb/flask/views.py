@@ -124,7 +124,6 @@ def get_games():
       return """<big><p style="color:red;">Please enter a date in the format YYYY-mm-dd</p></big>"""
 
    date_end = date+dt.timedelta(7)
-   season_frac = season_frac_dict[date]
 
    # get current AP rankings
    idx = np.argmax(date < df_ap.date) - 1
@@ -146,6 +145,8 @@ def get_games():
          season_stats_dict, season_stats_df = pickle.load(fid)
    except:
       return """<big><p style="color:red;">Invalid date! Must be during the 2019-20 season.</p></big>"""
+
+   season_frac = season_frac_dict[date]
 
    # get data into format that can be fed into models
    data = utils.compile_training_data(df_games, season_stats_dict, sort='alphabetical', include_preseason=True)
@@ -257,6 +258,8 @@ def get_games():
       elif row.pred_pace < -1.0:
          pace_string = "<p style='color:{};'>Slow</p>".format(rgba2hex(cm.get_cmap('Reds')(0.5)))
       pace_string = Markup(pace_string)
+
+      is_rivalry_text = "" if not row.is_rivalry else "Rivalry!"
          
       nselected += 1
       games.append(dict(
@@ -269,6 +272,7 @@ def get_games():
          vs_str = vs_str,
          r1str = r1str,
          r2str = r2str,
+         is_rivalry_text = is_rivalry_text,
          upset_prob = fmt_upset_prob,
          margin = fmt_margin,
          pace_string = pace_string

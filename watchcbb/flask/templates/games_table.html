@@ -1,11 +1,12 @@
 <table class="table table-hover results-table">
 <tr>
+  <th style="width:5%;vertical-align:middle;"></th>
+  <th style="width:15%;vertical-align:middle;">Date</th>
+  <th style="width:25%;vertical-align:middle;">Matchup</th>
   <th style="width:10%;vertical-align:middle;"></th>
-  <th style="width:20%;vertical-align:middle;">Date</th>
-  <th style="vertical-align:middle;">Matchup</th>
-  <th style="width:10%;:vertical-align:middle;">Upset<br>Chances</th>
-  <th style="width:10%;:vertical-align:middle;">Pred.<br>Margin</th>
-  <th style="width:10%;:vertical-align:middle;">Pace</th>
+  <th style="width:10%;vertical-align:middle;">Upset<br>Chances</th>
+  <th style="width:10%;vertical-align:middle;">Pred.<br>Margin</th>
+  <th style="width:10%;vertical-align:middle;">Pace</th>
 </tr>
 {% for game in games %}
 <tr>
@@ -17,6 +18,9 @@
     <br>
     <img src="https://d2p3bygnnzw9w3.cloudfront.net/req/202005291/tlogo/ncaa/{{ game.t2 }}.png" width="20px"/>
     {{ game.dn2 }} {{ game.r2str }}
+  </td>
+  <td style="vertical-align:middle;">
+    {{ game.is_rivalry_text }}
   </td>
   <td style="vertical-align:middle;">
     {{ game.upset_prob }}

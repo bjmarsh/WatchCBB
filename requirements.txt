@@ -4,3 +4,7 @@ pandas
 sklearn
 tqdm
 sqlalchemy
+sqlalchemy_utils
+psycopg2
+cmake
+xgboost

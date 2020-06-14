@@ -26,13 +26,16 @@ pip3 install -r requirements.txt  # text file with all of your required python p
 # >>> sudo apt-get install libpq-dev postgresql
 # >>> sudo -u postgres -i  # (this will let you run commands as user 'postgres'. You should see username change in CLI)
 # >>> createuser -s -P <username>  # add another superuser role to postresql. This will prompt to create a password
+# NOTE: to avoid headaches involved with copying a database over, <username> should be the same as you use on your local machine
 # >>> <ctrl+D>   # (quit sudo-ing as postgres)
 # 
 #
 # Copying a postgreSQL database to EC2
 # (on local computer) >>> pg_dump -C -h localhost -U <username> <db_name> > database.sql
-# Copy this file to EC2 instance with scp command above
-# (on EC2) >>> psql < database.sql
-#
-#
+# Copy this file to EC2 instance with scp command above. Then from EC2:
+# >>> sudo adduser <username>  # add a linux user with same name as database owner
+# >>> sudo -u <username> -i  # run commands as that user
+# >>> psql < database.sql    # run SQL commands to copy database over
+# This should copy entire database contents into your new EC2 database.
+# You can delete the database.sql file.
 #

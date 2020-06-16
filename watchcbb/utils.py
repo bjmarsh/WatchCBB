@@ -21,11 +21,12 @@ RIVALRIES = [tuple(sorted([x.strip() for x in line.split(',')])) \
              for line in open(os.path.join(os.path.dirname(__file__),'../data/rivalries.txt'))]
 
 def partition_games(df, frac=0.7):
-    """Returns a 2-tuple of arrays containing the indices.
-       The first are the indices in the dataframe that correspond to the
-       first <frac> games of each season. The second are the indices
-       that correspond to the last <1-frac> games of each season.
-       Assumes that the games are already sorted into chronological order.
+    """
+    Returns a 2-tuple of arrays containing the indices.
+    The first are the indices in the dataframe that correspond to the
+    first <frac> games of each season. The second are the indices
+    that correspond to the last <1-frac> games of each season.
+    Assumes that the games are already sorted into chronological order.
     """
     years = sorted(df.Season.unique())
     first, second = [], []
@@ -39,12 +40,13 @@ def partition_games(df, frac=0.7):
 
 
 def compute_season_stats(df, df_preseason=None, force_all_teams=False, tids=None, years=None):
-    """Take the per-game data frame and aggregate stats on a per team/season basis
-       Returns a dict structured like stats[year][team_id][stat_name]
-       If df_preseason is not None, also include preseason predictions of efficiency/pace
-       If force_all_teams, include all teams even if they haven't played any games yet
-         (if this is True, must also pass list of tids)
-       If years is not None, force include all years in that list
+    """
+    Take the per-game data frame and aggregate stats on a per team/season basis
+    Returns a dict structured like stats[year][team_id][stat_name]
+    If df_preseason is not None, also include preseason predictions of efficiency/pace
+    If force_all_teams, include all teams even if they haven't played any games yet
+      (if this is True, must also pass list of tids)
+      If years is not None, force include all years in that list
     """
 
     if df_preseason is not None:
@@ -127,8 +129,9 @@ def compute_season_stats(df, df_preseason=None, force_all_teams=False, tids=None
 
 
 def stats_dict_to_df(stats):
-    """Convert a dict of aggregated season stats (as returned by compute_season_stats)
-       into a DataFrame, with one team/season pair per row
+    """
+    Convert a dict of aggregated season stats (as returned by compute_season_stats)
+    into a DataFrame, with one team/season pair per row
     """    
     ascols = defaultdict(list)
     for year in sorted(stats.keys()):
@@ -146,9 +149,10 @@ def stats_dict_to_df(stats):
 
 
 def stats_df_to_dict(df):
-    """Convert a DataFrame of aggregated season stats
-       into a dict structured as stats[year][team_id][stat_name]
-       Assumes the first two columns of df are ['year','team_id']
+    """
+    Convert a DataFrame of aggregated season stats
+    into a dict structured as stats[year][team_id][stat_name]
+    Assumes the first two columns of df are ['year','team_id']
     """ 
     stats = {}
     for irow, row in df.iterrows():
@@ -177,10 +181,15 @@ def add_advanced_stats(df):
 
 
 def compile_training_data(df, season_stats_dict, random_seed=0, sort='random', include_preseason=False):
-    """Take in a raw game-level dataframe as well as a dictionary of season stats,
-       and generate a tidy dataframe amenable to feeding into ML models.
-       Randomly choose a team to be the "reference" for relative features,
-       so that classes are balanced. Then add a variety of features that may be useful.
+    """
+    Take in a raw game-level dataframe as well as a dictionary of season stats,
+    and generate a tidy dataframe amenable to feeding into ML models.
+    
+    Parameters:
+    - sort: if 'random', randomly choose team to be the "reference" team.
+            if 'alphabetical', use the first team alphabetically
+    - include_preseason: whether to add a few features on preseason statistics.
+                         these must be present in season_stats_dict
     """
     np.random.seed(random_seed)
     data = defaultdict(list)
@@ -224,8 +233,6 @@ def compile_training_data(df, season_stats_dict, random_seed=0, sort='random', i
         for stat in ADVSTATNAMES:
             data['T'+stat].append(d[id1]['Tcorro'+stat] - d[id2]['Tcorro'+stat])
             data['O'+stat].append(d[id1]['Tcorrd'+stat] - d[id2]['Tcorrd'+stat])
-#             data['T'+stat].append(d[id1]['T'+stat] - d[id2]['T'+stat])
-#             data['O'+stat].append(d[id1]['O'+stat] - d[id2]['O'+stat])
          
     columns = ['season', 'date', 'gid','tid1','tid2','result','rank1','rank2','totscore', 'margin', 
                'HA','poss','pace1','pace2','effdiff','raweffdiff','effsum']
@@ -233,8 +240,39 @@ def compile_training_data(df, season_stats_dict, random_seed=0, sort='random', i
     return pd.DataFrame(data, columns=columns)
 
 
+def train_test_split_by_year(data, train_years, test_years, pca_model=None):
+    """ 
+    From a dataframe generated by compile_training_data, split in to train and test sets by year.
+    If do_pca, a PCA is fit on the 12 advance stat features,
+    and the corresponding 12 components are added as features to the output dataframes.
+    """
+    data_train = data.loc[data.season.isin(train_years)].copy()
+    data_test = data.loc[data.season.isin(test_years)].copy()
+    
+    if pca_model is not None:
+        xf_train = pca_model.fit_transform(data_train[ADVSTATFEATURES])
+        xf_test = pca_model.transform(data_test[ADVSTATFEATURES])
+        for i in range(len(ADVSTATFEATURES)):
+            data_train["PCA"+str(i)] = xf_train[:,i]
+            data_test["PCA"+str(i)] = xf_test[:,i]
+    
+    return data_train, data_test
+
 def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, return_cols=None):
     """ 
+    Make predictions for games on various dates, *with statistics as they were on that date*
+    Used for validating performance of a model over the course of the season
+    
+    Parameters:
+    - dates: list of dates to make predictions for
+    - df_allgames: dataframe of individual games, including the dates that are requested
+    - model_file: pickled sklearn models to make per-game predictions
+    - pickled_stats_dir: dictionaries/dataframes of aggregated season stats should be in pickled
+                         files here, one file per date
+    - return cols: list of columns we want to return
+
+    Note that three sets of predictions are made: one with only preseason predictions,
+    one with only current season stats, and one using a blend of the two
     """
     with open(model_file, 'rb') as fid:
         pca, logreg, logreg_simple, linreg_pace, linreg_margin, linreg_total = pickle.load(fid)
@@ -273,8 +311,10 @@ def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, ret
         pred_margin = linreg_margin.predict(np.array([pred_pace*games.effdiff.values, games.HA.values]).T)
         pred_margin_pre = linreg_margin.predict(np.array([pred_pace_pre*games.preseason_effdiff.values, games.HA.values]).T)
 
-        p = max(0, 1-total_games[year]/5400.0)**2.6
+        p = get_blend_param(total_games[year] / 5400.0)
+        # we want to blend the exponents, so de logify, blend, and re compute logistic
         probs_blend = 1 / (1 + np.exp(-p*(-np.log(1./probs_pre-1)) - (1-p)*(-np.log(1./probs-1))))
+        # these are just linear combos, since regression is linear
         pred_pace_blend = p*pred_pace_pre + (1-p)*pred_pace
         pred_total_blend = p*pred_total_pre + (1-p)*pred_total
         pred_margin_blend = p*pred_margin_pre + (1-p)*pred_margin
@@ -297,24 +337,8 @@ def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, ret
     return pd.concat(dfs, ignore_index=True)
 
 
-def train_test_split_by_year(data, train_years, test_years, pca_model=None):
-    """ From a dataframe generated by compile_training_data, split in to train and test sets by year.
-        If do_pca, a PCA is fit on the 12 advance stat features,
-        and the corresponding 12 components are added as features to the output dataframes.
-    """
-    data_train = data.loc[data.season.isin(train_years)].copy()
-    data_test = data.loc[data.season.isin(test_years)].copy()
-    
-    if pca_model is not None:
-        xf_train = pca_model.fit_transform(data_train[ADVSTATFEATURES])
-        xf_test = pca_model.transform(data_test[ADVSTATFEATURES])
-        for i in range(len(ADVSTATFEATURES)):
-            data_train["PCA"+str(i)] = xf_train[:,i]
-            data_test["PCA"+str(i)] = xf_test[:,i]
-    
-    return data_train, data_test
-
 def get_pca_model():
+    """PCA pipeline used for logistic regression"""
     return Pipeline([
         ('scaler', StandardScaler()),
         ('pca', PCA())
@@ -326,7 +350,7 @@ def is_upset(r1, r2):
     return (r1 < 0 and 0 < r2 <= 20) or (r1 > 0 and r2 > 0 and r1-r2 > 10)
 
 def get_df_upset_prob(row):
-    """ Call df.apply on this to get upset probability per row. 0 if no potential upset."""
+    """Call df.apply on this to get upset probability per row. 0 if no potential upset."""
     
     if is_upset(row.rank1, row.rank2):
         return row.prob
@@ -338,3 +362,10 @@ def is_rivalry(row):
     """True if this row contains a rivalry game as defined in data/rivalries.txt"""
     tid1, tid2 = row.gid.split('_')[1:]
     return (tid1,tid2) in RIVALRIES
+
+def get_blend_param(season_frac):
+    """
+    When <season_frac> of the season is completed, this returns the fraction of the prediction to take from preseason
+    Derived empirically by maximizing performance at a variety of points in the season and fitting a power law
+    """
+    return max(0, 1-season_frac)**2.6

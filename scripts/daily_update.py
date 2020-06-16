@@ -46,7 +46,7 @@ while TODAY <= dt.date(2020,4,2):
     # convergence parameter
     p = 0.9 + 0.1*min(1000,df_games.shape[0])/1000
     # preseason blend fraction
-    preseason_blend = max(0.0, 1 - df_games.shape[0] / 5400.)**2.6
+    preseason_blend = utils.get_blend_param(df_games.shape[0] / 5400.)
     eff.compute_efficiency_ratings(season_stats_dict, conv_param=p, preseason_blend=preseason_blend)
     season_stats_df = utils.stats_dict_to_df(season_stats_dict)
 

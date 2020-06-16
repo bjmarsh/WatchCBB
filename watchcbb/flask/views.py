@@ -13,18 +13,20 @@ from sklearn.preprocessing import StandardScaler
 
 from matplotlib import cm
 
+import watchcbb.teams
 import watchcbb.utils as utils
-import watchcbb.sql as sql
+from watchcbb.sql import SQLEngine
 from watchcbb.flask import app
 
 #######################################################################
 # Load some constant global data that will be used in request function
 #######################################################################
 
-# Get a dictionary of nice "display names"
-df_teams = sql.df_from_query(""" SELECT * from teams """)
-tid2dn = dict(zip(df_teams.team_id, df_teams.display_name))
-tid2conf = dict(zip(df_teams.team_id, df_teams.conference))
+# connect to 'cbb' postgresql database. Uses credentials in watchcbb/PSQL_CREDENTIALS.txt
+sql = SQLEngine('cbb')
+
+# load dict of team data
+teams = watchcbb.teams.teams_from_df(sql.df_from_query(""" SELECT * from teams """))
 
 # Load database of historical AP rankings
 df_ap = sql.df_from_query(""" SELECT * from ap_rankings """)
@@ -221,7 +223,7 @@ def get_games():
       datestr = "{0}, {1}/{2}".format(row.date.strftime("%a"), row.date.month, row.date.day)
       t1, t2 = row.tid1, row.tid2
 
-      c1, c2 = tid2conf[t1], tid2conf[t2]
+      c1, c2 = teams[t1].conference, teams[t2].conference
       if c1 not in conf_names.values():
          c1 = 'other'
       if c2 not in conf_names.values():
@@ -268,8 +270,8 @@ def get_games():
          date = datestr, 
          t1 = t1,
          t2 = t2,
-         dn1 = tid2dn[t1],
-         dn2 = tid2dn[t2],
+         dn1 = teams[t1].display_name,
+         dn2 = teams[t2].display_name,
          vs_str = vs_str,
          r1str = r1str,
          r2str = r2str,

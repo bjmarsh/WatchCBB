@@ -22,7 +22,7 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0, preseaso
         for tid in statdict[year]:
             if statdict[year][tid]["TFGA"] > 0:
                 nteams += 1
-                tot += statdict[year][tid]["Tcorr"+stat]
+                tot += statdict[year][tid][stat]
         return 0 if nteams==0 else tot/nteams
 
     # compute raw offensive/defensive efficiency for each team
@@ -78,11 +78,11 @@ def compute_efficiency_ratings(statdict, HOME_CORR=3.1, conv_param=1.0, preseaso
         for year in statdict:
             avg_stat = {}
             for stat in stats:
-                avg_stat["o"+stat] = GetAvg(year, "o"+stat)
-                avg_stat["d"+stat] = GetAvg(year, "d"+stat)
-            avg_oeff = GetAvg(year, "oeff")
-            avg_deff = GetAvg(year, "deff")
-            avg_pace = np.mean([statdict[year][tid]["pacetemp"] for tid in statdict[year] if statdict[year][tid]["TFGA"]>0])
+                avg_stat["o"+stat] = GetAvg(year, "Tcorro"+stat)
+                avg_stat["d"+stat] = GetAvg(year, "Tcorrd"+stat)
+            avg_oeff = GetAvg(year, "Tcorroeff")
+            avg_deff = GetAvg(year, "Tcorrdeff")
+            avg_pace = GetAvg(year, "pacetemp")
             for tid in statdict[year].keys():
                 d = statdict[year]
                 if d[tid]["TFGA"]==0:

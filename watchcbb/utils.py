@@ -37,26 +37,26 @@ def partition_games(df, frac=0.7):
         
     return first, second
 
-def lookup_val(df, year, tid, colname, default_val=None):
-    """ Return the value of 'colname' for the year and team ID specified
-        This assumes that each (year,tid) pair appears in exactly one row
-    """
-    vals =  df.loc[(df.year==year) & (df.team_id==tid)][colname].values
-    if vals.size==0:
-        if default_val is None:
-            raise Exception(f"Could not find team {tid} in year {year}")
-        return default_val
-    elif vals.size==1:
-        return vals[0]
-    else:
-        raise Exception(f"Found multiple entries of team {tid} in year {year}")
 
-def compute_season_stats(df, df_preseason=None, force_all_teams=False, df_teams=None):
+def compute_season_stats(df, df_preseason=None, force_all_teams=False, tids=None, years=None):
     """Take the per-game data frame and aggregate stats on a per team/season basis
        Returns a dict structured like stats[year][team_id][stat_name]
        If df_preseason is not None, also include preseason predictions of efficiency/pace
+       If force_all_teams, include all teams even if they haven't played any games yet
+         (if this is True, must also pass list of tids)
+       If years is not None, force include all years in that list
     """
+
+    if df_preseason is not None:
+        dict_preseason = stats_df_to_dict(df_preseason)
+
+    if force_all_teams:
+        if tids is None:
+            raise Exception("Must pass a df_teams if force_all_teams is True")
     
+    if years is None:
+        years = df.Season.unique()
+
     def init_team_dict(d, year, tid):
         if year not in d:
             raise Exception(f"{year} must be a key of dictionary")
@@ -76,28 +76,26 @@ def compute_season_stats(df, df_preseason=None, force_all_teams=False, df_teams=
             d[year][tid]["T"+sn] = 0
             d[year][tid]["O"+sn] = 0
         if df_preseason is not None:
-            d[year][tid]["preseason_eff"] = lookup_val(df_preseason, year, tid, "pred_eff", -10.0)
-            d[year][tid]["preseason_oeff"] = lookup_val(df_preseason, year, tid, "pred_oeff", 100.0)
-            d[year][tid]["preseason_deff"] = lookup_val(df_preseason, year, tid, "pred_deff", 110.0)
-            d[year][tid]["preseason_pace"] = lookup_val(df_preseason, year, tid, "pred_pace", 69)
+            d[year][tid]["preseason_eff"] = dict_preseason[year].get(tid,{}).get("pred_eff", -10.0)
+            d[year][tid]["preseason_oeff"] = dict_preseason[year].get(tid,{}).get("pred_oeff", -10.0)
+            d[year][tid]["preseason_deff"] = dict_preseason[year].get(tid,{}).get("pred_deff", -10.0)
+            d[year][tid]["preseason_pace"] = dict_preseason[year].get(tid,{}).get("pred_pace", -10.0)
 
     stats = {}
+
+    # initialize all years
+    for year in years:
+        stats[year] = {}
+        # force initialization of all teams, even if they've played no games yet
+        if force_all_teams:
+            for tid in tids:
+                init_team_dict(stats, year, tid)
+
     for irow,row in df.iterrows():
         year = row.Season
         wid = row.WTeamID
         lid = row.LTeamID
-        if year not in stats:
-            stats[year] = {}
 
-            # force initialization of all teams, even if they've played no games yet
-            if force_all_teams:
-                if df_teams is None:
-                    raise Exception("Must pass a df_teams if force_all_teams is True")
-                for tid in df_teams.loc[(df_teams.year_start<=year) & \
-                                        (df_teams.year_end>=year)].team_id.values:
-                    init_team_dict(stats, year, tid)
-            
-       
         # initialize values if we haven't seen this team yet
         for tid in (wid,lid):
             if tid not in stats[year]:
@@ -127,6 +125,7 @@ def compute_season_stats(df, df_preseason=None, force_all_teams=False, df_teams=
 
     return stats
 
+
 def stats_dict_to_df(stats):
     """Convert a dict of aggregated season stats (as returned by compute_season_stats)
        into a DataFrame, with one team/season pair per row
@@ -149,6 +148,7 @@ def stats_dict_to_df(stats):
 def stats_df_to_dict(df):
     """Convert a DataFrame of aggregated season stats
        into a dict structured as stats[year][team_id][stat_name]
+       Assumes the first two columns of df are ['year','team_id']
     """ 
     stats = {}
     for irow, row in df.iterrows():

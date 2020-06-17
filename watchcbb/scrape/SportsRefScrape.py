@@ -15,7 +15,7 @@ class SportsRefScrape:
     def __init__(self):
         pass
 
-    def get_gid(self,date, t1, t2):
+    def get_gid(self, date, t1, t2):
         """ Return unique game id, with date and alphabetized teams, like 2020-02-15_indiana_purdue" """
         tnames = sorted([t1, t2])
         return "{0}_{1}_{2}".format(date,tnames[0],tnames[1])
@@ -175,9 +175,46 @@ WAst,WTO,WStl,WBlk,WPF,LFGM,LFGA,LFGM3,LFGA3,LFTM,LFTA,LOR,LDR,LAst,LTO,LStl,LBl
         return rows
 
 
+    def get_games_on_date(self, startdate, enddate):
+        """Return gids of all games between startdate and enddate (inclusive)"""
+
+        gids = []
+        date = startdate
+        while date <= enddate:
+            url = f'https://www.sports-reference.com/cbb/boxscores/index.cgi?month={date.month:02d}&day={date.day:02d}&year={date.year}'
+            html = str(get_html(url))
+            if html.find("No games found") > -1:
+                date += dt.timedelta(1)
+                continue
+
+            soup = BeautifulSoup(html, 'html.parser')
+            for table in soup.find_all('table', {'class':'teams'}):
+                td = table.find_all("tr")[0].find("td")
+                a = td.find("a")
+                if a==None:  # usually a non-DI team
+                    continue
+                if not a.has_attr("href"):
+                    continue
+                t1 = td.find("a")["href"].split("/")[3]
+                td = table.find_all("tr")[1].find("td")
+                a = td.find("a")
+                if a==None:  # usually a non-DI team
+                    continue
+                if not a.has_attr("href"):
+                    continue
+                t2 = td.find("a")["href"].split("/")[3]
+                
+                gids.append(self.get_gid(date, t1, t2))
+
+            date += dt.timedelta(1)
+
+        return gids
+
+
     def get_ap_rankings(self, season):
-        """Given the season, return a dictionary where the keys are dates 
-           and values are length-25 lists giving the rankings 1-25 on that date.
+        """
+        Given the season, return a dictionary where the keys are dates 
+        and values are length-25 lists giving the rankings 1-25 on that date.
         """
 
         url = f'https://www.sports-reference.com/cbb/seasons/{season}-polls.html'
@@ -273,4 +310,7 @@ if __name__=="__main__":
 
     # sr.get_game_data(2020, fout="../scratch/test.csv", overwrite=True, teams=['purdue'], verbose=True)
 
-    sr.get_roster_info(2017, teams=['utah-state'], fout='test.pkl.gz')
+    # sr.get_roster_info(2017, teams=['utah-state'], fout='test.pkl.gz')
+
+    for gid in sr.get_games_on_date(dt.date(2020,2,15), dt.date(2020,2,16)):
+        print(gid)

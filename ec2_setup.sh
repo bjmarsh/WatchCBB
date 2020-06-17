@@ -1,8 +1,15 @@
 #! /bin/bash
 
+# you can run 'source ec2_setup.sh' in a fresh EC2 instance to run these commands
+# and install the necessary packages. Note you need a requirements.txt file.
+
+# make sure we've loaded most recent info from all package repositories
 sudo apt-get update
+# install system-wide required packages like python, gunicorn, nginx, postgresql
 sudo apt-get install nginx gunicorn3 python3-pip python3-flask libpq-dev postgresql
-pip3 install -r requirements.txt  # text file with all of your required python packages
+# install project-specific python packages (requirements.txt lists all of your required python packages)
+pip3 install -r requirements.txt
+
 
 #####################
 # Some useful things
@@ -39,3 +46,43 @@ pip3 install -r requirements.txt  # text file with all of your required python p
 # This should copy entire database contents into your new EC2 database.
 # You can delete the database.sql file.
 #
+#
+# SOME ISSUES w/ TUTORIAL
+# 
+#
+# gunicorn.conf should actually be gunicorn.service. Will get errors otherwise
+# 
+# 
+# There is apparently already an nginx process running, which will overwrite
+# the one you start (if you go to your webpage and you see an nginx splashscreen,
+# this is what is happening). So you need to run:
+#     sudo systemctl stop nginx
+# and then
+#     sudo systemctl start nginx
+#
+# 
+# By default apparently pip3 installs packages locally (i.e. in your user
+# directory, not in the system-wide python packages location). Maybe this
+# doesn't happen if you run 'sudo pip3', but if they are locally installed
+# then the systemd gunicorn service won't work, because the package locations
+# aren't in the PYTHONPATH by default.
+#
+# Now you don't really need to use systemd to start gunicorn, it is fine to
+# run it in the background or in a screen session because the risk of random system
+# reboot is probably very small. However, if you want to do this step, you have to
+# modify it as follows:
+#
+# Make a wrapper script start_gunicorn.sh in your main project direcotory as follows:
+# | #! /bin/bash
+# | export PYTHONPATH=$PYTHONPATH:/home/<username>/.local/lib/python3.6/site-packages
+# | gunicorn3 -b 0.0.0.0:8080 watchcbb.flask:app | tee log.txt
+# 
+# (need to modify <username> and the gunicorn command to whatever is specific to your app)
+#
+# Then in the gunicorn.service systemd file, the [Service] block should be as follows:
+# | WorkingDirectory=/path/to/your/app/directory
+# | ExecStart=/bin/bash start_gunicorn.sh
+#
+# This will run the wrapper instead of gunicorn directly, which makes sure to add the correct
+# local directory to your PYTHONPATH
+

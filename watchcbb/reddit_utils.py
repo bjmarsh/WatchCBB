@@ -1,3 +1,4 @@
+import os
 import datetime as dt
 import json
 import re
@@ -6,8 +7,8 @@ import numpy as np
 import pandas as pd
 
 
-_TEAM_IDS = pd.read_csv('../data/teams.csv').team_id.values.tolist()
-with open('../data/name_substitutions.json') as fid:
+_TEAM_IDS = pd.read_csv(os.path.join(os.path.dirname(__file__),'../data/teams.csv')).team_id.values.tolist()
+with open(os.path.join(os.path.dirname(__file__),'../data/name_substitutions.json')) as fid:
     _REPLACE_NAMES = json.load(fid)
 _BAD = []
 

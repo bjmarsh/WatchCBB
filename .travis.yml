@@ -6,4 +6,4 @@ install:
   - pip install pandas
   - source setup.sh
 script:
-  python tests/run_tests.py
+  python test/run_tests.py

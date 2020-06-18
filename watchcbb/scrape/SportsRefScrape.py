@@ -36,13 +36,14 @@ class SportsRefScrape:
         return teams
 
 
-    def get_game_data(self, season, fout=None, overwrite=False, teams=None, startdate=None, enddate=None, verbose=False):
+    def get_game_data(self, season, fout=None, overwrite=False, gids=None, teams=None, startdate=None, enddate=None, verbose=False):
         """Retrieve individual game statistics for a set of teams in a given season
         
         Parameters:
         season: year of the season (i.e. 2020 for 2019-20 season)
         fout: file to write output CSV to (None to not write to file)
         overwrite: True to overwrite file, False to append to it (taking care to avoid duplicates)
+        gids: optional list of gids to get. If not None, this overrides anything in teams, startdate, enddate
         teams: list of team IDs (from sports-reference) to retrive games for.
                If None, use all teams in D-I for the given season
         startdate: date to start retrieving games, defaults to beginning of season
@@ -52,11 +53,22 @@ class SportsRefScrape:
         Returns: list of comma-separated strings, as would be written into the lines of a CSV
         """
 
-        if teams==None:
-            teams = self.get_team_list(season)
+        if teams is not None:
+            if gids is not None:
+                raise Exception("Only one of gids, teams can be non-null")
+        else:
+            if gids is None:
+                teams = self.get_team_list(season)
 
+        gids_to_get = None
+        if gids is not None:
+            gids_to_get = gids
+            teams = [gid.split("_")[1] for gid in gids]
+            teams = list(set(teams))
+            
         gids = {}
-        rows = {}
+        lines = {}
+        rows = []
 
         # if we want to update the game file, record everything in the old file
         if fout is not None and overwrite==False:
@@ -66,8 +78,8 @@ class SportsRefScrape:
                 gid = self.get_gid(date,sp[3], sp[5])
                 if date not in gids.keys():
                     gids[date] = []
-                    rows[date] = []
-                rows[date].append(line)
+                    lines[date] = []
+                lines[date].append(line)
                 gids[date].append(gid)
 
         stats = ["pts","fg","fga","fg3","fg3a","ft","fta","orb","trb","ast","stl","blk","tov","pf"]
@@ -107,11 +119,15 @@ class SportsRefScrape:
                     continue
                 opp = opp.find("a")["href"].split("/")[3]
                 gid = self.get_gid(date, team, opp)
+
+                if gids_to_get is not None and gid not in gids_to_get:
+                    continue
+
                 datem1day = str(dt.date(*[int(x) for x in date.split("-")]) - dt.timedelta(1))
                 gidm1day = self.get_gid(datem1day, team, opp)
                 if date not in gids.keys():
                     gids[date] = []
-                    rows[date] = []                
+                    lines[date] = []                
                 if gid in gids[date] or (datem1day in gids.keys() and gidm1day in gids[datem1day]):
                     continue
                 else:
@@ -155,28 +171,42 @@ class SportsRefScrape:
                     if loc=="H":   loc="A"
                     elif loc=="A": loc="H"
 
-                string = "{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15},{16},\
-{17},{18},{19},{20},{21},{22},{23},{24},{25},{26},{27},{28},{29},{30},{31},{32},{33},{34}\n".format(
-    season,date,gtype,wteam,wd["pts"],lteam,ld["pts"],loc,numot,
-    wd["fg"],wd["fga"],wd["fg3"],wd["fg3a"],wd["ft"],wd["fta"],wd["orb"],wd["trb"]-wd["orb"],wd["ast"],wd["tov"],wd["stl"],wd["blk"],wd["pf"],
-    ld["fg"],ld["fga"],ld["fg3"],ld["fg3a"],ld["ft"],ld["fta"],ld["orb"],ld["trb"]-ld["orb"],ld["ast"],ld["tov"],ld["stl"],ld["blk"],ld["pf"])
+                rowvals = [season,date,gtype,wteam,wd["pts"],lteam,ld["pts"],loc,numot,
+                           wd["fg"],wd["fga"],wd["fg3"],wd["fg3a"],wd["ft"],wd["fta"],wd["orb"],
+                           wd["trb"]-wd["orb"],wd["ast"],wd["tov"],wd["stl"],wd["blk"],wd["pf"],
+                           ld["fg"],ld["fga"],ld["fg3"],ld["fg3a"],ld["ft"],ld["fta"],ld["orb"],
+                           ld["trb"]-ld["orb"],ld["ast"],ld["tov"],ld["stl"],ld["blk"],ld["pf"]
+                ]
+                rows.append(rowvals)
 
-                rows[date].append(string)
+                string = ",".join([str(x) for x in rowvals]) + '\n'
 
+                lines[date].append(string)
+
+        colnames = ["Season","Date","Type","WTeamID","WScore","LTeamID","LScore","WLoc","NumOT",
+                    "WFGM","WFGA","WFGM3","WFGA3","WFTM","WFTA","WOR","WDR","WAst","WTO","WStl",
+                    "WBlk","WPF","LFGM","LFGA","LFGM3","LFGA3","LFTM","LFTA","LOR","LDR","LAst",
+                    "LTO","LStl","LBlk","LPF"
+        ]
         if fout:
             fout = open(fout, 'w')
-            fout.write("Season,Date,Type,WTeamID,WScore,LTeamID,LScore,WLoc,NumOT,WFGM,WFGA,WFGM3,WFGA3,WFTM,WFTA,WOR,WDR,\
-WAst,WTO,WStl,WBlk,WPF,LFGM,LFGA,LFGM3,LFGA3,LFTM,LFTA,LOR,LDR,LAst,LTO,LStl,LBlk,LPF\n")
+            fout.write(",".join(colnames)+'\n')
             for date in sorted(gids.keys()):
-                for s in rows[date]:
+                for s in lines[date]:
                     fout.write(s)
             fout.close()
 
-        return rows
+        return pd.DataFrame(rows, columns=colnames)
 
 
-    def get_games_on_date(self, startdate, enddate):
-        """Return gids of all games between startdate and enddate (inclusive)"""
+    def get_gids_on_date(self, startdate, enddate=None):
+        """
+        Return gids of all games between startdate and enddate (inclusive)
+        If enddate is None, use only startdate
+        """
+
+        if enddate is None:
+            enddate = startdate
 
         gids = []
         date = startdate
@@ -312,5 +342,8 @@ if __name__=="__main__":
 
     # sr.get_roster_info(2017, teams=['utah-state'], fout='test.pkl.gz')
 
-    for gid in sr.get_games_on_date(dt.date(2020,2,15), dt.date(2020,2,16)):
-        print(gid)
+    # for gid in sr.get_gids_on_date(dt.date(2020,2,15), dt.date(2020,2,16)):
+    #     print(gid)
+    
+    gids = sr.get_gids_on_date(dt.date(2020,2,16), dt.date(2020,2,16))
+    print(sr.get_game_data(2020, gids=gids, verbose=True))

@@ -4,8 +4,9 @@ import sqlalchemy.exc
 
 import pandas as pd
 
-
 class SQLEngine:
+    """Handle the connection to the main 'cbb' database, and perform various database operations"""
+
     def __init__(self, dbname, credentials=None):
         """ Open a connection to a postgresql database
             
@@ -43,6 +44,11 @@ class SQLEngine:
 
     def df_to_sql(self, df, table_name, if_exists='fail'):
         df.to_sql(table_name, self.engine, index=False, if_exists=if_exists)
+
+    def drop_rows(self, table_name, condition):
+        result = self.engine.execute(f""" DELETE FROM {table_name} WHERE {condition} """)
+        return result
+
 
     class SQLException(Exception):
         pass

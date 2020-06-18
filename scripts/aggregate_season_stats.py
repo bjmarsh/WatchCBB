@@ -15,7 +15,8 @@ import watchcbb.efficiency as eff
 sql = SQLEngine('cbb')
 
 TODAY = dt.date(2019,11,5)
-while TODAY <= dt.date(2020,4,2):
+while TODAY <= dt.date(2020,03,11):
+
     print(f"Doing date {TODAY}")
 
     SEASON = TODAY.year if TODAY.month < 6 else TODAY.year+1

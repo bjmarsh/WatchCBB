@@ -47,10 +47,13 @@ pip3 install -r requirements.txt
 # You can delete the database.sql file.
 #
 #
-# SOME ISSUES w/ TUTORIAL
-# 
+#
+#############################################
+# Some issues w/ tutorial and other problems
+#############################################
 #
 # gunicorn.conf should actually be gunicorn.service. Will get errors otherwise
+# 
 # 
 # 
 # There is apparently already an nginx process running, which will overwrite
@@ -60,6 +63,7 @@ pip3 install -r requirements.txt
 # and then
 #     sudo systemctl start nginx
 #
+# 
 # 
 # By default apparently pip3 installs packages locally (i.e. in your user
 # directory, not in the system-wide python packages location). Maybe this
@@ -85,4 +89,29 @@ pip3 install -r requirements.txt
 #
 # This will run the wrapper instead of gunicorn directly, which makes sure to add the correct
 # local directory to your PYTHONPATH
-
+#
+#
+#
+# XGBOOST issues
+# xgboost requires cmake version >=3.16 to install correctly
+# The default ubuntu version (that you get with sudo apt-get install cmake)
+# is version 3.10, and so won't work.
+#
+# First, make sure there is no cmake already installed:
+# >>> sudo apt-get remove cmake
+# >>> pip3 uninstall cmake
+#
+# Now install the pip version of cmake:
+# >>> pip3 install cmake
+#
+# If you run the below, you should see "cmake" among other things:
+# >>> ls ~/.local/bin
+#
+# Another problem, pip installs things locally in ~/.local/bin, 
+# but this isn't in your path, so the system doesn't know
+# where to find it. Add it to your path like this:
+# >>> export PATH=$PATH:~/.local/bin
+#
+# Now type 'cmake --version', you should see 3.17.
+# If this is the case, 'pip3 install xgboost' should work.
+#

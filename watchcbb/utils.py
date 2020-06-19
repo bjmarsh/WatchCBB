@@ -344,10 +344,12 @@ def get_pca_model():
         ('pca', PCA())
     ])
 
+
 def is_upset(r1, r2):
     """Return true if r1 beating r2 is classified as an upset"""
 
     return (r1 < 0 and 0 < r2 <= 20) or (r1 > 0 and r2 > 0 and r1-r2 > 10)
+
 
 def get_df_upset_prob(row):
     """Call df.apply on this to get upset probability per row. 0 if no potential upset."""
@@ -358,10 +360,12 @@ def get_df_upset_prob(row):
         return 1-row.prob
     return 0.0
 
+
 def is_rivalry(row):
     """True if this row contains a rivalry game as defined in data/rivalries.txt"""
     tid1, tid2 = row.gid.split('_')[1:]
     return (tid1,tid2) in RIVALRIES
+
 
 def get_blend_param(season_frac):
     """
@@ -369,3 +373,10 @@ def get_blend_param(season_frac):
     Derived empirically by maximizing performance at a variety of points in the season and fitting a power law
     """
     return max(0, 1-season_frac)**2.6
+
+
+def process_ap_sql(df_ap):
+    """ Convert single SQL strings into lists of strings """
+
+    for i in range(1,26):
+        df_ap[f'r{i}'] = df_ap[f'r{i}'].apply(lambda x:[y.strip() for y in x.strip('{}').split(',')])

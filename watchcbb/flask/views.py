@@ -87,7 +87,7 @@ def get_games():
             allowed_confs.append(conf_names[c])
 
     try:
-        date = dt.date(*[int(x) for x in date.split('-')])
+        date = futils.parse_date_string(date)
     except:
         return """<big><p style="color:red;">Please enter a date in the format YYYY-mm-dd</p></big>"""
 
@@ -105,8 +105,7 @@ def get_games():
 
     # load season stats from gzipped pickles
     try:
-        with gzip.open("data/season_stats/2020/{0}.pkl.gz".format(date), 'rb') as fid:
-            season_stats_dict, season_stats_df = pickle.load(fid)
+        season_stats_dict, season_stats_df = futils.load_season_stats('data/season_stats/2020', date)
     except:
         return """<big><p style="color:red;">Invalid date! Must be during the 2019-20 season.</p></big>"""
 
@@ -172,4 +171,32 @@ def get_games():
         ))
 
     return render_template('games_table.html',games=games)
+
+
+@app.route('/team/<team_id>')
+def team_page(team_id):
+    date = request.args.get('date', '2020-02-15')
+    try:
+        date = futils.parse_date_string(date)
+    except:
+        date = dt.date(2020,2,15)
+
+    try:
+        season_stats_dict, season_stats_df = futils.load_season_stats('data/season_stats/2020', date)
+    except:
+        return """Invalid date! Must be during the 2019-20 season."""
+
+    stats = season_stats_dict[2020][team_id]
+
+    team = teams[team_id]
+    return render_template('team_page.html',
+                           date = date,
+                           team_id = team_id,
+                           team_name = team.display_name,
+                           city = team.location,
+                           conference = team.conference,
+                           stats = stats,
+                           # wins = stats['wins'],
+                           # losses = stats['losses'],
+                    )
 

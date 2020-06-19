@@ -1,7 +1,11 @@
 """
 Helper functions for main flask app
 """
+
+import os
+import datetime as dt
 import pickle
+import gzip
 
 from flask import Markup
 
@@ -12,6 +16,17 @@ from matplotlib import cm
 from watchcbb.sql import SQLEngine
 import watchcbb.utils as utils
 import watchcbb.teams
+
+
+def parse_date_string(datestr):
+    """ Take string formatted like YYYY-mm-dd and return datetime.date object """
+    return dt.date(*[int(x) for x in datestr.split('-')])
+
+def load_season_stats(pickle_dir, date):
+    """ load season stats dict/dataframe from gzipped pickle """
+    with gzip.open(os.path.join(pickle_dir,"{0}.pkl.gz".format(date)), 'rb') as fid:
+        season_stats_dict, season_stats_df = pickle.load(fid)
+    return season_stats_dict, season_stats_df
 
 
 def get_game_models(fname='models/game_regressions.pkl'):

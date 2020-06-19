@@ -66,6 +66,10 @@ def get_games_between_dates(date, date_end, sql_engine):
 
 def make_predictions(data, s1, s2, s3, season_frac, mean_pace, std_pace):
     """
+    Take in game data dataframe and add columns representing predictions of win prob, pace, margin, total score
+    s1,s2,s3 are the slider values on a scale from -100 to 100
+    season_frac is the fraction of the season completed so far (used for computing preseason blend parameter)
+    mean_pace, std_pace are mean/std of team pace values, used to scale/normalize pace values
     """
 
     ## Load game and reddit models from pickle files
@@ -124,6 +128,10 @@ def make_predictions(data, s1, s2, s3, season_frac, mean_pace, std_pace):
 
 
 def is_allowed_conference(c1, c2, conf_names, allowed_confs):
+    """
+    Return True if at least one of c1/c2 is an allowed_conference
+    conf_names is a list of all defined conferences (used to group things into an "other" category)
+    """
     if c1 not in conf_names:
         c1 = 'other'
     if c2 not in conf_names:
@@ -134,6 +142,7 @@ def is_allowed_conference(c1, c2, conf_names, allowed_confs):
 
 
 def get_formatted_upset_prob(p):
+    """ Take the upset probability as a float and return an HTML-styled/colored string representation """
     fmt_upset_prob = "{0:d}%".format(int(round(100*p)))
     if fmt_upset_prob=="0%":
         fmt_upset_prob = ""
@@ -146,6 +155,8 @@ def get_formatted_upset_prob(p):
 
 
 def get_pace_string(pace):
+    """ Take a pace-of-play float and return an HTML-styled/colored string representation """
+
     pace_string = ""
     if pace > 2.0:
         pace_string = "<p style='color:{};'>Very fast</p>".format(rgba2hex(cm.get_cmap('Greens')(0.9)))

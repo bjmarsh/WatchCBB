@@ -16,7 +16,7 @@ def date_from_timestamp(ts):
     """Convert UNIX timestamp to date of game.
        Timestamp is in UTC time. If before 10am, assign to previous day
     """
-    datetime = dt.datetime.fromtimestamp(ts)
+    datetime = dt.datetime.fromtimestamp(ts, tz=dt.timezone.utc)
     date = datetime.date()
     if datetime.hour < 10:
         date -= dt.timedelta(1)

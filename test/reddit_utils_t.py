@@ -13,13 +13,13 @@ class TestTeams(unittest.TestCase):
         pass
 
     def test_date_from_timestamp(self):
-        ts1 = 1592575200 # 2020-06-19, 09:00
-        ts2 = 1592593200 # 2020-06-19, 14:00
+        ts1 = 1592557200 # 2020-06-19, 09:00
+        ts2 = 1592575200 # 2020-06-19, 14:00
         date1 = ru.date_from_timestamp(ts1)
         date2 = ru.date_from_timestamp(ts2)
         self.assertIsInstance(date1, dt.date)
         self.assertIsInstance(date2, dt.date)
-        # even though date is same, should function should count
+        # even though date is same, function should count
         # times before 10:00 as previous day
         self.assertEqual((date2-date1).days, 1)
         
@@ -43,7 +43,7 @@ class TestTeams(unittest.TestCase):
         self.assertEqual(f(['uc-davis']), ['california-davis'])
         self.assertEqual(f(['uri']), ['rhode-island'])
         self.assertEqual(f(['purduee']), None)
-        
+        self.assertEqual(ru._BAD, ['purduee'])
 
 
 if __name__=="__main__":

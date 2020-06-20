@@ -9,5 +9,9 @@ if __name__=="__main__":
     test_patt = "*_t.py"
     tests = unittest.TestLoader().discover(test_dir, test_patt)
     test_runner = unittest.TextTestRunner()
-    test_runner.run(tests)
+    ret = test_runner.run(tests)
 
+    if len(ret.errors)>0 or len(ret.failures)>0:
+        exit(1)
+    else:
+        exit(0)

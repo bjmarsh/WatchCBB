@@ -63,6 +63,8 @@ def fix_names(pair):
     """
     if pair is None:
         return None
+    if type(pair) not in [tuple, list]:
+        return None
     ret = []
     for p in pair:
         if p in _TEAM_IDS:

@@ -6,3 +6,5 @@ bootstrap*
 game_data*.csv
 .ipynb_checkpoints
 rsci_raw
+.coverage
+htmlcov

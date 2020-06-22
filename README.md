@@ -4,7 +4,11 @@
 [![nbviewer](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/bjmarsh/WatchCBB/tree/master/notebooks/)
 <!-- [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bjmarsh/WatchCBB/master) -->
 
-An app to provide a personalized recommendation of which college basketball games to watch.
+An app to provide personalized recommendations of entertaining college basketball games to watch.
+
+<p align="center"><a href="http://watchcbb.me/">
+<img src="./data/watchcbb_demo.gif" alt="WatchCBB demo" width="650"/>
+</a></p>
 
 ## Contents
 

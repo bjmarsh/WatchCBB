@@ -87,7 +87,7 @@ pip3 install -r requirements.txt
 # Make a wrapper script start_gunicorn.sh in your main project direcotory as follows:
 # | #! /bin/bash
 # | export PYTHONPATH=$PYTHONPATH:/home/<username>/.local/lib/python3.6/site-packages
-# | gunicorn3 -b 0.0.0.0:8080 watchcbb.flask:app | tee log.txt
+# | python3 -u /usr/bin/gunicorn3 -b 0.0.0.0:8080 watchcbb.flask:app 2>&1 | tee log.txt
 # 
 # (need to modify <username> and the gunicorn command to whatever is specific to your app)
 #

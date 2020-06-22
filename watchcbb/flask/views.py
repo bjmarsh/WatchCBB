@@ -14,8 +14,8 @@ from sklearn.preprocessing import StandardScaler
 import watchcbb.teams
 import watchcbb.utils as utils
 from watchcbb.sql import SQLEngine
+from watchcbb.flask import utils as futils
 from watchcbb.flask import app
-import watchcbb.flask.utils as futils
 
 #######################################################################
 # Load some constant global data that will be used in request function

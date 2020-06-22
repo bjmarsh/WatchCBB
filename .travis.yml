@@ -3,7 +3,9 @@ language: python
 python:
   - "3.7"
 install: 
-  - pip install pandas
+  - pip install pandas coveralls
   - source setup.sh
 script:
-  python test/run_tests.py
+  coverage run test/run_tests.py
+after_success:
+  coveralls

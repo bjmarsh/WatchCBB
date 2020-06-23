@@ -7,7 +7,7 @@ import pandas as pd
 class SQLEngine:
     """Handle the connection to the main 'cbb' database, and perform various database operations"""
 
-    def __init__(self, dbname, credentials=None):
+    def __init__(self, dbname, credentials=None, testing=False):
         """ Open a connection to a postgresql database
             
             Parameters:
@@ -16,8 +16,15 @@ class SQLEngine:
                            with username and password on first two lines.
                            Defaults to {__file__}/PSQL_CREDENTIALS.txt
         """
+
+        # connect to an in-memory database used for unit testing
+        if credentials == "MEMORY":
+            self.engine = create_engine('sqlite:///:memory:')
+            return
+
         if credentials is None:
-            credentials = os.path.join(os.path.dirname(__file__),"PSQL_CREDENTIALS.txt")
+            fname = "PSQL_CREDENTIALS.txt" if not testing else "fake.file"
+            credentials = os.path.join(os.path.dirname(__file__), fname)
 
         if type(credentials) == str:
             if not os.path.exists(credentials):
@@ -38,6 +45,11 @@ class SQLEngine:
             self.engine.connect()
         except sqlalchemy.exc.OperationalError:
             raise SQLEngine.SQLException("invalid credentials or dbname")
+
+    def get_teams_active_in_year(self, year):
+        return self.df_from_query(
+            f""" SELECT team_id FROM teams WHERE year_start+1 <= {year} AND year_end >= {year} """
+            ).values.flatten().tolist()
         
     def df_from_query(self, query):
         return pd.read_sql_query(query, self.engine)

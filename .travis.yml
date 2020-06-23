@@ -3,7 +3,7 @@ language: python
 python:
   - "3.7"
 install: 
-  - pip install pandas coveralls sqlalchemy
+  - pip install pandas coveralls sqlalchemy psycopg2
   - source setup.sh
 script:
   coverage run test/run_tests.py

@@ -200,3 +200,6 @@ def team_page(team_id):
                            # losses = stats['losses'],
                     )
 
+@app.route('/slides')
+def slides_page():
+    return render_template('slides.html', title="WatchCBB")

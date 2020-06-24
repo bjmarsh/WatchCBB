@@ -38,6 +38,18 @@ def partition_games(df, frac=0.7):
         
     return first, second
 
+def add_gid(df):
+    """ Add a column to game df with unique game id """
+
+    def get_gid(row):
+        tid1, tid2 = sorted((row.WTeamID, row.LTeamID))
+        return '{0}_{1}_{2}'.format(row.Date, tid1, tid2)
+
+    df['gid'] = df.apply(get_gid, axis=1)
+
+def add_poss(df):
+    """ Add a column to game df that represents number of possessions """
+    df["poss"] = 0.5*(df["WFGA"] + 0.44*df["WFTA"] - df["WOR"] + df["WTO"] + df["LFGA"] + 0.44*df["LFTA"] - df["LOR"] + df["LTO"])
 
 def compute_season_stats(df, df_preseason=None, force_all_teams=False, tids=None, years=None):
     """
@@ -252,13 +264,13 @@ def train_test_split_by_year(data, train_years, test_years, pca_model=None):
     if pca_model is not None:
         xf_train = pca_model.fit_transform(data_train[ADVSTATFEATURES])
         xf_test = pca_model.transform(data_test[ADVSTATFEATURES])
-        for i in range(len(ADVSTATFEATURES)):
+        for i in range(xf_train.shape[1]):
             data_train["PCA"+str(i)] = xf_train[:,i]
             data_test["PCA"+str(i)] = xf_test[:,i]
     
     return data_train, data_test
 
-def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, return_cols=None):
+def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, return_cols=None, no_tqdm=False):
     """ 
     Make predictions for games on various dates, *with statistics as they were on that date*
     Used for validating performance of a model over the course of the season
@@ -274,6 +286,7 @@ def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, ret
     Note that three sets of predictions are made: one with only preseason predictions,
     one with only current season stats, and one using a blend of the two
     """
+    
     with open(model_file, 'rb') as fid:
         pca, logreg, logreg_simple, linreg_pace, linreg_margin, linreg_total = pickle.load(fid)
     if return_cols is None:
@@ -284,7 +297,9 @@ def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, ret
                        'margin','pred_margin','pred_margin_pre','pred_margin_blend']
     dfs = []
     total_games = defaultdict(int)
-    for date in tqdm(dates):
+    if not no_tqdm:
+        dates = tqdm_dates
+    for date in dates:
         df_games = df_allgames.loc[df_allgames.Date==date]
         year = df_games.Season.values[0]
         total_games[year] += df_games.shape[0]
@@ -334,7 +349,10 @@ def get_daily_predictions(dates, df_allgames, model_file, pickled_stats_dir, ret
 
         dfs.append(games[return_cols].copy())
 
-    return pd.concat(dfs, ignore_index=True)
+    if len(dfs) > 0:
+        return pd.concat(dfs, ignore_index=True)
+    else:
+        return None
 
 
 def get_pca_model():
@@ -363,7 +381,7 @@ def get_df_upset_prob(row):
 
 def is_rivalry(row):
     """True if this row contains a rivalry game as defined in data/rivalries.txt"""
-    tid1, tid2 = row.gid.split('_')[1:]
+    tid1, tid2 = sorted(row.gid.split('_')[1:])
     return (tid1,tid2) in RIVALRIES
 
 
@@ -378,5 +396,5 @@ def get_blend_param(season_frac):
 def process_ap_sql(df_ap):
     """ Convert single SQL strings into lists of strings """
 
-    for i in range(1,26):
+    for i in range(1, df_ap.shape[1]):
         df_ap[f'r{i}'] = df_ap[f'r{i}'].apply(lambda x:[y.strip() for y in x.strip('{}').split(',')])

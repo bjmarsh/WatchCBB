@@ -3,7 +3,7 @@ language: python
 python:
   - "3.7"
 install: 
-  - pip install numpy pandas sklearn tqdm coveralls sqlalchemy psycopg2
+  - pip install numpy pandas scikit-learn==0.23.0 tqdm coveralls sqlalchemy psycopg2
   - source setup.sh
 script:
   coverage run test/run_tests.py

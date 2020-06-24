@@ -1,10 +1,12 @@
 # WatchCBB
 
 [![Build Status](https://travis-ci.org/bjmarsh/WatchCBB.svg?branch=master)](https://travis-ci.org/bjmarsh/WatchCBB)
+[![Coverage Status](https://coveralls.io/repos/github/bjmarsh/WatchCBB/badge.svg?branch=master)](https://coveralls.io/github/bjmarsh/WatchCBB?branch=master)
 [![nbviewer](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/bjmarsh/WatchCBB/tree/master/notebooks/)
 <!-- [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bjmarsh/WatchCBB/master) -->
 
 An app to provide personalized recommendations of entertaining college basketball games to watch.
+Find it at [watchcbb.me](http://watchcbb.me).
 
 <p align="center"><a href="http://watchcbb.me/">
 <img src="./data/watchcbb_demo.gif" alt="WatchCBB demo" width="650"/>

@@ -5,7 +5,8 @@
 [![nbviewer](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/bjmarsh/WatchCBB/tree/master/notebooks/)
 <!-- [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bjmarsh/WatchCBB/master) -->
 
-An app to provide personalized recommendations of entertaining college basketball games to watch.
+An app to provide personalized recommendations of entertaining college basketball games to watch,
+built from scratch over 3 weeks as my Insight Data Science project.
 Find it at [watchcbb.me](http://watchcbb.me).
 
 <p align="center"><a href="http://watchcbb.me/">
@@ -17,11 +18,14 @@ Find it at [watchcbb.me](http://watchcbb.me).
 * The `data` and `notebooks` directories have their own READMEs with descriptions of the contents.
 * `scripts` contains various utility scripts for scraping/cleaning data.
 * `watchcbb` is a python module containing all of the "meat" of the app
-  * `watchcbb.scrape`: submodule containing `SportsRefScrape` and `RedditCBBScrape` classes for scraping sports-reference/reddit.
+  * `watchcbb.scrape`: submodule containing classes for scraping sports-reference/reddit/ESPN.
   * `watchcbb.flask`: submodule containing the flask web application
   * `watchcbb.utils`: utility functions for dealing with game data. Compile into season stats, add composite metrics, split into train/test by year, etc.
   * `watchcbb.efficiency`: function for computing SoS-adjusted efficiencies and other advanced stats
-  * `watchcbb.sql`: utility function for interacting with PostgreSQL database. It will automatically connect an sqlalchemy engine to the `cbb` database using credentials in `watchcbb/PSQL_CREDENTIALS.txt` when you import it.
+  * `watchcbb.sql`: utility class for interacting with PostgreSQL database. 
   * `watchcbb.reddit_utils`: utility functions for managing/parsing reddit gamethread data
+  * `watchcbb.teams`: class/functions for handling team data
+* `test` contains all of the unit testing framework
 * `setup.sh`: add `watchcbb` to your python path
 * `run_flask.py`: launch the flask web app contained in `watchcbb/flask`
+* `ec2_setup.sh`: installation commands and many helpful comments for setting up an environment on an AWS EC2 instance.

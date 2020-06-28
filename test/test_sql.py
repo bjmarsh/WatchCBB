@@ -51,7 +51,7 @@ class TestSql(unittest.TestCase):
         cls.session.commit()
 
     def test_SQLEngine_init(self):
-        """ check that bad inputs all raise the correct error """
+        """ --check that bad inputs all raise the correct error """
         self.assertRaises(SQLEngine.SQLException, SQLEngine, 'cbb', None, testing=True)
         self.assertRaises(SQLEngine.SQLException, SQLEngine, 'cbb', 'kdahga.ahgaoig') # non-existent file
         self.assertRaises(SQLEngine.SQLException, SQLEngine, 'cbb', self.fname)  # invalid credentials
@@ -59,14 +59,14 @@ class TestSql(unittest.TestCase):
         self.assertRaises(SQLEngine.SQLException, SQLEngine, 'cbb', ['x'])
 
     def test_SQLEngine_get_teams_active_in_year(self):
-        """ test a variety of years to get all edge cases """
+        """ --test a variety of years to get all edge cases """
 
         for year in [1940, 1960, 1970, 1975, 2000, 2015, 2030]:
             tids = self.sql.get_teams_active_in_year(year)
             self.assertEqual(tids, [x[0] for x in self.teams_data if x[2]+1<=year and x[3]>=year])
         
     def test_SQLEngine_df_from_query(self):
-        """ test a couple db operations on existing 'teams' table """
+        """ --test a couple db operations on existing 'teams' table """
 
         vals = self.sql.df_from_query(""" SELECT * FROM teams """).values.tolist()
         self.assertEqual(vals, self.teams_data)
@@ -75,7 +75,7 @@ class TestSql(unittest.TestCase):
         self.assertEqual(vals, self.teams_data[:1])
         
     def test_SQLEngine_df_to_sql(self):
-        """ create a dummy table to test SQL writing function """
+        """ --create a dummy table to test SQL writing function """
 
         data = [[1,2],[3,4]]
         df = pd.DataFrame(data, columns=['a','b']) 
@@ -85,7 +85,7 @@ class TestSql(unittest.TestCase):
         self.assertEqual(vals, data)
 
     def test_SQLEngine_drop_rows(self):
-        """ create a dummy table and test dropping a row """
+        """ --create a dummy table and test dropping a row """
 
         data = [[1,2],[3,4]]
         df = pd.DataFrame(data, columns=['a','b']) 

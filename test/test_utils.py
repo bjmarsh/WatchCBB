@@ -17,6 +17,7 @@ class TestUtils(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """ Load in some small test game data and preseason ratings """
         cls.df_games = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data/test_game_data.csv'))
         utils.add_gid(cls.df_games)
         utils.add_poss(cls.df_games)
@@ -62,7 +63,7 @@ class TestUtils(unittest.TestCase):
         self.assertTrue('rawpace' in ss_df.columns)
 
     def test_training_workflow(self):
-        """ test the functions compile_training_data, train_test_split_by_year, get_daily_predictions """
+        """ --test the functions compile_training_data, train_test_split_by_year, get_daily_predictions """
         
         LASTDATE = self.df_games.Date.values[-1]
         restricted_games = self.df_games[self.df_games.Date < LASTDATE]

@@ -289,7 +289,7 @@ class SportsRefScrape:
 
         return polls
 
-    def get_roster_info(self, season, teams=None, stats=["MP","WS"], fout=None, out_type="df"):
+    def get_roster_info(self, season, teams=None, stats=["MP","WS"], use_adv=True, est_file=None, fout=None, out_type="df"):
         """Get player IDs and statistics for a given season for every team in teams"""
 
         if teams==None:
@@ -299,32 +299,56 @@ class SportsRefScrape:
         for stat in stats:
             data[stat] = []
 
+        if est_file:
+            est_rosters = pd.read_pickle(est_file, compression='gzip').set_index('team_id')
+            est_rosters = est_rosters.to_dict(orient='index')
+
         for tid in teams:
             print(f"Getting roster for {tid}")
 
             url = f"https://www.sports-reference.com/cbb/schools/{tid}/{season}.html"
             html = str(get_html(url))
 
-            tablestartAdv = html.find('<table class="sortable stats_table" id="advanced"')
-            tableendAdv = html.find("</table>",tablestartAdv)
-            htmlAdv = html[tablestartAdv:tableendAdv+8]
-            soupAdv = BeautifulSoup(htmlAdv, "html.parser")
-            tableAdv = soupAdv.find("table", {"id":"advanced"})
+            tablestart = html.find('<table class="sortable stats_table" id="roster"')
+            tableend = html.find("</table>",tablestart)
+            if use_adv:
+                tablestartAdv = html.find('<table class="sortable stats_table" id="advanced"')
+                tableendAdv = html.find("</table>",tablestartAdv)
+                htmlAdv = html[tablestartAdv:tableendAdv+8]
+                soupAdv = BeautifulSoup(htmlAdv, "html.parser")
+                tableAdv = soupAdv.find("table", {"id":"advanced"})
 
-            if tableAdv is None:
-                print(f"WARNING: team {tid} not found for year {season}")
+            html = html[tablestart:tableend+8]
+            soup = BeautifulSoup(html, "html.parser")
+            
+            table = soup.find("table", {"id":"roster"})
+            if use_adv:
+                tableAdv = soupAdv.find("table", {"id":"advanced"})
+
+            data['team_id'].append(tid)
+            if table is None:
+                print("    School not found for year {0}! Using estimated roster".format(season))
+                for c in ['players'] + stats:
+                    data[c].append(est_rosters[tid][c])
+
                 continue
                 
-            data['team_id'].append(tid)
             for s in ['players']+stats:
                 data[s].append([])
                 
-            for tr in tableAdv.find("tbody").find_all("tr"):
-                data['players'][-1].append(tr.find("td",{"data-stat":"player"})["data-append-csv"])
-                
+            for tr in table.find("tbody").find_all("tr"):        
+                player = tr.find("th",{"data-stat":"player"}).find("a")["href"].split("/")[3].split(".")[0]
+                data['players'][-1].append(player)
+
+            if use_adv:
+                for tr in tableAdv.find("tbody").find_all("tr"):
+                    for stat in stats:
+                        x = tr.find("td",{"data-stat":stat.lower()}).string
+                        data[stat][-1].append(float(x) if x is not None else 0.0)
+            else:
                 for stat in stats:
-                    x = tr.find("td",{"data-stat":stat.lower()}).string
-                    data[stat][-1].append(float(x) if x is not None else 0.0)
+                    for p in data['players'][-1]:
+                        data[stat][-1].append(0.0)
 
         if fout:
             if out_type == "df":
@@ -340,10 +364,10 @@ if __name__=="__main__":
 
     # sr.get_game_data(2020, fout="../scratch/test.csv", overwrite=True, teams=['purdue'], verbose=True)
 
-    # sr.get_roster_info(2017, teams=['utah-state'], fout='test.pkl.gz')
+    sr.get_roster_info(2021, teams=['purdue', 'princeton'], use_adv=False, est_file='../../data/rosters/estimated_rosters/2021.pkl.gz', fout='test.pkl.gz')
 
     # for gid in sr.get_gids_on_date(dt.date(2020,2,15), dt.date(2020,2,16)):
     #     print(gid)
     
-    gids = sr.get_gids_on_date(dt.date(2020,2,16), dt.date(2020,2,16))
-    print(sr.get_game_data(2020, gids=gids, verbose=True))
+    # gids = sr.get_gids_on_date(dt.date(2020,2,16), dt.date(2020,2,16))
+    # print(sr.get_game_data(2020, gids=gids, verbose=True))

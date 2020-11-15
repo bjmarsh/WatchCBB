@@ -203,3 +203,12 @@ def team_page(team_id):
 @app.route('/slides')
 def slides_page():
     return render_template('slides.html', title="WatchCBB")
+
+
+@app.route('/cbb/preseason')
+def preseason_page():
+    year = request.args.get('year', '2021')
+    try:
+        year = int(year)
+    except:
+        year = 2021

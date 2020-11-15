@@ -212,3 +212,18 @@ def preseason_page():
         year = int(year)
     except:
         year = 2021
+
+    df = pd.read_csv('data/preseason_predictions.csv')
+    df = df[df.year==year].sort_values('pred_eff', ascending=False).reset_index(drop=True)
+    
+    rows = []
+    for i,row in df.iterrows():
+        rows.append(dict(
+            i = i+1,
+            team_name = teams[row.team_id].display_name,
+            conf = teams[row.team_id].conference,
+            
+        )) 
+
+        
+    return render_template('preseason.html', year=year, teams=rows)

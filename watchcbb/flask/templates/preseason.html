@@ -1,0 +1,84 @@
+<html>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-112743979-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-112743979-1');
+</script>
+<body>
+<style type="text/css">
+    .tg  {border-collapse:collapse;border-spacing:0;border-color:#999;margin:0px auto;}
+.tg td{font-family:Arial, sans-serif;font-size:12px;padding:3px 3px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}
+.tg th{font-family:Arial, sans-serif;font-size:12px;font-weight:normal;padding:5px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#fff;background-color:#1B56A3;}
+.tg .tg-baqh{text-align:center;vertical-align:top}
+.tg .tg-baqhnr{text-align:center;vertical-align:top;border-right-style:none}
+.tg .tg-baqhnl{text-align:center;vertical-align:top;border-left-style:none}
+.tg .tg-mb3i{background-color:#D2E4FC;text-align:right;vertical-align:top}
+.tg .tg-mb3inr{background-color:#D2E4FC;text-align:right;vertical-align:top;border-right-style:none}
+.tg .tg-mb3inl{background-color:#D2E4FC;text-align:right;vertical-align:top;border-left-style:none}
+.tg .tg-lqy6{text-align:right;vertical-align:top}
+.tg .tg-lqy6nr{text-align:right;vertical-align:top;border-right-style:none}
+.tg .tg-lqy6nl{text-align:right;vertical-align:top;border-left-style:none}
+.tg .tg-6k2t{background-color:#D2E4FC;vertical-align:top}
+.tg .tg-6k2tnr{background-color:#D2E4FC;vertical-align:top;border-right-style:none}
+.tg .tg-6k2tnl{background-color:#D2E4FC;vertical-align:top;border-left-style:none}
+.tg .tg-yw4l{vertical-align:top}
+.tg .tg-yw4lnr{text-align:left;vertical-align:top;border-right-style:none}
+.tg .tg-yw4lnl{text-align:left;vertical-align:top;border-left-style:none}
+
+    html {position: relative;min-width: 1024px;min-height: 768px;height: 100%;}
+    a:link{color:#202020;}
+    a:visited{color:#202020;}    a:hover{color:#a0a0a0;}
+    h2{text-align:center;font-family:Arial;}
+    body{text-align:center;font-family:Arial;font-size:10pt}
+    td{white-space: nowrap}
+    div{text-align:center}
+
+ .row { vertical-align: top; height:auto !important; }
+ .list {display:none; }
+ .show {display: none; }
+ .hide:target + .show {display: inline; }
+ .hide:target {display: none; }
+ .hide:target ~ .list {display:inline; }
+ @media print { .hide, .show { display: none; } }
+
+th.tg-sort-header::-moz-selection { background:transparent; }th.tg-sort-header::selection      { background:transparent; }th.tg-sort-header { cursor:pointer; }table th.tg-sort-header:after {  content:'';  float:right;  margin-top:7px;  border-width:0 4px 4px;  border-style:solid;  border-color:#F0F0F0 transparent;  visibility:hidden;  }table th.tg-sort-header:hover:after {  visibility:visible;  }table th.tg-sort-desc:after,table th.tg-sort-asc:after,table th.tg-sort-asc:hover:after {  visibility:visible;  opacity:0.4;  }table th.tg-sort-desc:after {  border-bottom:none;  border-width:4px 4px 0;  }
+</style>
+
+    <!-- <table style="font-size:10pt"><tr> -->
+    <!-- <td style="border-right:1px solid #000000;padding:2px 15px"><a href="index.html">Home</a></td> -->
+    <!-- <td style="border-right:1px solid #000000;padding:2px 15px"><a href="game_probs.html">Game Probabilities</a></td> -->
+    <!-- <td style="border-right:1px solid #000000;padding:2px 15px"><a href="conferences.html">Conferences</a></td> -->
+    <!-- <td style="border-right:1px solid #000000;padding:2px 15px"><a href="preseason.html">Preseaon Predictions</a></td> -->
+    <!-- <td style="padding:2px 15px"><a href="ncaa_tourn.html">NCAA Tournament</a></td> -->
+    <!-- </tr></table> -->
+    <h2> Preseason Predictions </h2>
+
+    <table id="tg-2wHOX" class="tg">
+    <th class="tg-baqh"><u>Rank</u></th>
+    <th class="tg-baqh"><u>Team</u></th>
+    <th class="tg-baqh"><u>Conf</u></th>
+    <th class="tg-baqh"><u>Preseason</u></th>
+    <th class="tg-baqh"><u>{{year-1}} Season</u></th>
+    <th class="tg-baqh"><u>{{year-2}} Season</u></th>
+    <th class="tg-baqh"><u>Recruiting</u></th>
+    <th class="tg-baqh"><u>Departing Players</u></th>
+    <th class="tg-baqh"><u>Transfers</u></th>
+    <th class="tg-baqh"><u>Const Offset</u></th>
+
+    {% for team in teams %}
+    <tr>
+      <td class="tg-yw4l">{{ team.i }}.</td>
+      
+    </tr>
+    {% endfor %}
+      
+    
+    </table>
+
+
+<script type="text/javascript" charset="utf-8">var TgTableSort=window.TgTableSort||function(n,t){"use strict";function r(n,t){for(var e=[],o=n.childNodes,i=0;i<o.length;++i){var u=o[i];if("."==t.substring(0,1)){var a=t.substring(1);f(u,a)&&e.push(u)}else u.nodeName.toLowerCase()==t&&e.push(u);var c=r(u,t);e=e.concat(c)}return e}function e(n,t){var e=[],o=r(n,"tr");return o.forEach(function(n){var o=r(n,"td");t>=0&&t<o.length&&e.push(o[t])}),e}function o(n){return n.textContent||n.innerText||""}function i(n){return n.innerHTML||""}function u(n,t){var r=e(n,t);return r.map(o)}function a(n,t){var r=e(n,t);return r.map(i)}function c(n){var t=n.className||"";return t.match(/\S+/g)||[]}function f(n,t){return-1!=c(n).indexOf(t)}function s(n,t){f(n,t)||(n.className+=" "+t)}function d(n,t){if(f(n,t)){var r=c(n),e=r.indexOf(t);r.splice(e,1),n.className=r.join(" ")}}function v(n){d(n,L),d(n,E)}function l(n,t,e){r(n,"."+E).map(v),r(n,"."+L).map(v),e==T?s(t,E):s(t,L)}function g(n){return function(t,r){var e=n*t.str.localeCompare(r.str);return 0==e&&(e=t.index-r.index),e}}function h(n){return function(t,r){var e=+t.str,o=+r.str;return e==o?t.index-r.index:n*(e-o)}}function m(n,t,r){var e=u(n,t),o=e.map(function(n,t){return{str:n,index:t}}),i=e&&-1==e.map(isNaN).indexOf(!0),a=i?h(r):g(r);return o.sort(a),o.map(function(n){return n.index})}function p(n,t,r,o){for(var i=f(o,E)?N:T,u=m(n,r,i),c=0;t>c;++c){var s=e(n,c),d=a(n,c);s.forEach(function(n,t){n.innerHTML=d[u[t]]})}l(n,o,i)}function x(n,t){var r=t.length;t.forEach(function(t,e){t.addEventListener("click",function(){p(n,r,e,t)}),s(t,"tg-sort-header")})}var T=1,N=-1,E="tg-sort-asc",L="tg-sort-desc";return function(t){var e=n.getElementById(t),o=r(e,"tr"),i=o.length>0?r(o[0],"td"):[];0==i.length&&(i=r(o[0],"th"));for(var u=1;u<o.length;++u){var a=r(o[u],"td");if(a.length!=i.length)return}x(e,i)}}(document);document.addEventListener("DOMContentLoaded",function(n){TgTableSort("tg-2wHOX")});</script>
+</body></html>
